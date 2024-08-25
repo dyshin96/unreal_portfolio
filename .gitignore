@@ -1,0 +1,29 @@
+# Visual Studio 관련 파일 및 디렉토리
+.vs/
+*.suo
+*.user
+*.userossc
+*.sln
+*.VC.db
+*.opensdf
+*.sdf
+*.ipch
+*.pdb
+
+# 언리얼 엔진 관련 디렉토리
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# 임시 파일 및 로그 파일들
+*.log
+*.tlog
+*.log~
+*.tmp
+*.temp
+*.bak
+
+# IDE 관련 파일들
+.idea/
