@@ -27,3 +27,6 @@ Saved/
 
 # IDE 관련 파일들
 .idea/
+
+# 언리얼 관련 파일 
+*.uasset
