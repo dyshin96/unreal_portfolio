@@ -10,6 +10,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "IImageWrapperModule.h"
+#include "ObjectTools.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -50,16 +52,43 @@ AWarriorsCharacter::AWarriorsCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
-}
+	HeadMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Head"));
+	HandsMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Hands"));
+	LegsMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Legs"));
+	FeetMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Feet"));
+	EyesMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Eyes"));
+	HairMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Hair"));
+	Helmet = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Helmet"));
 
+	HeadMesh->SetupAttachment(GetMesh());
+	HandsMesh->SetupAttachment(GetMesh());
+	LegsMesh->SetupAttachment(GetMesh());
+	FeetMesh->SetupAttachment(GetMesh());
+	EyesMesh->SetupAttachment(GetMesh());
+	HairMesh->SetupAttachment(GetMesh());
+	Helmet->SetupAttachment(GetMesh());
+}
 void AWarriorsCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
-}
+	//SaveSkeletalMeshThumbnailToDisk();
+	TSoftObjectPtr<USkeletalMesh> MeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Chest_Arms.SK_Chest_Arms")));
+	TSoftObjectPtr<USkeletalMesh> HeadMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Head_Teeth_Tongue.SK_Head_Teeth_Tongue")));
+	TSoftObjectPtr<USkeletalMesh> HandsMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Hands.SK_Hands")));
+	TSoftObjectPtr<USkeletalMesh> LegsMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Legs.SK_Legs")));
+	TSoftObjectPtr<USkeletalMesh> FeetMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Feet.SK_Feet")));
+	TSoftObjectPtr<USkeletalMesh> EyesMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Eyes.SK_Eyes")));
+	TSoftObjectPtr<USkeletalMesh> HairMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Hair.SK_Hair")));
 
+	GetMesh()->SetSkeletalMesh(MeshPtr.LoadSynchronous());
+	HeadMesh->SetSkeletalMesh(HeadMeshPtr.LoadSynchronous());
+	HandsMesh->SetSkeletalMesh(HandsMeshPtr.LoadSynchronous());
+	LegsMesh->SetSkeletalMesh(LegsMeshPtr.LoadSynchronous());
+	FeetMesh->SetSkeletalMesh(FeetMeshPtr.LoadSynchronous());
+	EyesMesh->SetSkeletalMesh(EyesMeshPtr.LoadSynchronous());
+	HairMesh->SetSkeletalMesh(HairMeshPtr.LoadSynchronous());
+}
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -127,4 +156,46 @@ void AWarriorsCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+bool AWarriorsCharacter::SaveSkeletalMeshThumbnailToDisk(USkeletalMesh* SkeletalMesh, const FString& SavePath)
+{
+	if (!SkeletalMesh)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid SkeletalMesh!"));
+		return false;
+	}
+
+	//// 썸네일을 생성합니다.
+	FObjectThumbnail* Thumbnail = ThumbnailTools::GetThumbnailForObject(SkeletalMesh);
+	if (Thumbnail == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to generate thumbnail!"));
+		return false;
+	}
+
+	Thumbnail->CompressImageData();
+
+	int32 Width = Thumbnail->GetImageWidth();
+	int32 Height = Thumbnail->GetImageHeight();
+
+	// 이미지 데이터 압축 해제
+	const TArray<uint8>& ImageData = Thumbnail->GetUncompressedImageData();
+
+	// PNG로 저장할 준비를 합니다.
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+
+	if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(ImageData.GetData(), ImageData.Num(), Width, Height, ERGBFormat::BGRA, 8))
+	{
+		const TArray64<uint8>& PngData = ImageWrapper->GetCompressed(100);
+		if (FFileHelper::SaveArrayToFile(PngData, *SavePath))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Thumbnail saved successfully: %s"), *SavePath);
+			return true;
+		}
+	}
+
+	UE_LOG(LogTemp, Error, TEXT("Failed to save thumbnail!"));
+	return false;
 }

@@ -16,6 +16,7 @@ Build/
 DerivedDataCache/
 Intermediate/
 Saved/
+Content/
 
 # 임시 파일 및 로그 파일들
 *.log

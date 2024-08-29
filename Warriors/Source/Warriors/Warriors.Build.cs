@@ -9,5 +9,13 @@ public class Warriors : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
-	}
+
+        PrivateDependencyModuleNames.AddRange(new string[] { "ImageWrapper" });
+
+        // UnrealEd 모듈 추가 (에디터 전용)
+        if (Target.bBuildEditor)
+        {
+            PrivateDependencyModuleNames.Add("UnrealEd");
+        }
+    }
 }

@@ -44,6 +44,29 @@ class AWarriorsCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	UPROPERTY()
+	USkeletalMeshComponent* HeadMesh;
+	UPROPERTY()
+	USkeletalMeshComponent* HandsMesh;
+	UPROPERTY()
+	USkeletalMeshComponent* FeetMesh;
+	UPROPERTY()
+	USkeletalMeshComponent* HairMesh;
+	UPROPERTY()
+	USkeletalMeshComponent* EyesMesh;
+	UPROPERTY()
+	USkeletalMeshComponent* LegsMesh;
+	UPROPERTY()
+	USkeletalMeshComponent* Helm;
+	UPROPERTY()
+	USkeletalMeshComponent* ShoulderArmour;
+	UPROPERTY()
+	USkeletalMeshComponent* Belt;
+	UPROPERTY()
+	USkeletalMeshComponent* Necklace;
+	UPROPERTY()
+	USkeletalMeshComponent* Helmet;
+
 public:
 	AWarriorsCharacter();
 	
@@ -56,6 +79,7 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 			
+	bool SaveSkeletalMeshThumbnailToDisk(class USkeletalMesh* SkeletalMesh, const FString& SavePath);
 
 protected:
 	// APawn interface
