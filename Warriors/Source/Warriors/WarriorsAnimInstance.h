@@ -13,8 +13,11 @@ private:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	static FVector ProjectVectorOntoVector(const FVector& A, const FVector& B);
 protected:
-	UFUNCTION(BlueprintCallable)
-	float GetWarriorForwardVelocity();
-	UFUNCTION(BlueprintCallable)
-	float GetWarriorRightVelocity();
+	void UpdateWarriorForwardVelocity();
+	void UpdateWarriorRightVelocity();
+public:
+	UPROPERTY(BlueprintReadOnly)
+	float ForwardVelocity;
+	UPROPERTY(BlueprintReadOnly)
+	float RightVelocity;
 };

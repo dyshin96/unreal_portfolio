@@ -7,51 +7,51 @@
 void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-
-
-
+	UpdateWarriorForwardVelocity();
+	UpdateWarriorRightVelocity();
 }
 
-float UWarriorsAnimInstance::GetWarriorForwardVelocity()
+void UWarriorsAnimInstance::UpdateWarriorForwardVelocity()
 {
 	ACharacter* Character = Cast<ACharacter>(GetOwningActor());
 	UCharacterMovementComponent* CharacterMovement = GetOwningActor()->FindComponentByClass<UCharacterMovementComponent>();
 	if (IsValid(Character) && IsValid(CharacterMovement))
 	{
-		FVector Velocity = CharacterMovement->GetLastUpdateVelocity();
-		// find out which way is forward
-		const FRotator Rotation = Character->GetController()->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		FVector ForwardVelocity = ProjectVectorOntoVector(Velocity, ForwardDirection);
-		return ForwardVelocity.Size();
+		AController* Controller = Character->GetController();
+		if(IsValid(Controller))
+		{
+			FVector Velocity = CharacterMovement->GetLastUpdateVelocity();
+			// find out which way is forward
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
+			// get forward vector
+			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+			ForwardVelocity = ProjectVectorOntoVector(Velocity, ForwardDirection).Size();
+		}
 	}
-
 	UE_LOG(LogTemp, Error, TEXT("Character or CharacterMovement is not valid"));
-	return 0.0f;
 }
 
-float UWarriorsAnimInstance::GetWarriorRightVelocity()
+void UWarriorsAnimInstance::UpdateWarriorRightVelocity()
 {
 	ACharacter* Character = Cast<ACharacter>(GetOwningActor());
 	UCharacterMovementComponent* CharacterMovement = GetOwningActor()->FindComponentByClass<UCharacterMovementComponent>();
 	if (IsValid(Character) && IsValid(CharacterMovement))
 	{
-		FVector Velocity = CharacterMovement->GetLastUpdateVelocity();
-		// find out which way is forward
-		const FRotator Rotation = Character->GetController()->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		AController* Controller = Character->GetController();
+		if (IsValid(Controller))
+		{
+			FVector Velocity = CharacterMovement->GetLastUpdateVelocity();
+			// find out which way is forward
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		FVector ForwardVelocity = ProjectVectorOntoVector(Velocity, ForwardDirection);
-		return ForwardVelocity.Size();
+			// get forward vector
+			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+			RightVelocity = ProjectVectorOntoVector(Velocity, ForwardDirection).Size();
+		}
 	}
-	
 	UE_LOG(LogTemp, Error, TEXT("Character or CharacterMovement is not valid"));
-	return 0.0f;
 }
 
 FVector UWarriorsAnimInstance::ProjectVectorOntoVector(const FVector& A, const FVector& B)
