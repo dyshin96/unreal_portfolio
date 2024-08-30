@@ -57,7 +57,7 @@ class AWarriorsCharacter : public ACharacter
 	UPROPERTY()
 	USkeletalMeshComponent* LegsMesh;
 	UPROPERTY()
-	USkeletalMeshComponent* Helm;
+	USkeletalMeshComponent* HelmetMesh;
 	UPROPERTY()
 	USkeletalMeshComponent* ShoulderArmour;
 	UPROPERTY()
@@ -69,8 +69,8 @@ class AWarriorsCharacter : public ACharacter
 
 public:
 	AWarriorsCharacter();
-	
-
+private:
+	void InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent);
 protected:
 
 	/** Called for movement input */

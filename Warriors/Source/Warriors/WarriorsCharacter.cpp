@@ -58,16 +58,24 @@ AWarriorsCharacter::AWarriorsCharacter()
 	FeetMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Feet"));
 	EyesMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Eyes"));
 	HairMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Hair"));
-	Helmet = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Helmet"));
+	HelmetMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Helmet"));
 
-	HeadMesh->SetupAttachment(GetMesh());
-	HandsMesh->SetupAttachment(GetMesh());
-	LegsMesh->SetupAttachment(GetMesh());
-	FeetMesh->SetupAttachment(GetMesh());
-	EyesMesh->SetupAttachment(GetMesh());
-	HairMesh->SetupAttachment(GetMesh());
-	Helmet->SetupAttachment(GetMesh());
+	InitSubMeshs(HeadMesh);
+	InitSubMeshs(HandsMesh);
+	InitSubMeshs(LegsMesh);
+	InitSubMeshs(FeetMesh);
+	InitSubMeshs(EyesMesh);
+	InitSubMeshs(HairMesh);
+	InitSubMeshs(HelmetMesh);
+
 }
+
+void AWarriorsCharacter::InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent)
+{
+	SkeletalMeshComponent->SetupAttachment(GetMesh());	
+	SkeletalMeshComponent->SetLeaderPoseComponent(GetMesh());
+}
+
 void AWarriorsCharacter::BeginPlay()
 {
 	// Call the base class  
