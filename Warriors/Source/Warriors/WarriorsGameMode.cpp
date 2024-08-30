@@ -7,6 +7,8 @@
 AWarriorsGameMode::AWarriorsGameMode()
 {
 	// set default pawn class to our Blueprinted character
+	///Game/Warriors/Characters/BP_Warriors
+	////Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter
 	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/Warriors/Characters/BP_Warriors"));
 	if (PlayerPawnBPClass.Class != NULL)
 	{

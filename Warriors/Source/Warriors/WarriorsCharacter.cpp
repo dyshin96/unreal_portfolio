@@ -109,6 +109,10 @@ void AWarriorsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
+		else
+		{
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Fail to Find SubSystem"));
+		}
 	}
 	
 	// Set up action bindings
