@@ -68,7 +68,7 @@ class AWarriorsCharacter : public ACharacter
 	USkeletalMeshComponent* Helmet;
 
 public:
-	AWarriorsCharacter();
+	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
 	void InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent);
 protected:

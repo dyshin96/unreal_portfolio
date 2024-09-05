@@ -12,8 +12,6 @@ class UWarriorsAnimInstance : public UAnimInstance
 private:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	static FVector ProjectVectorOntoVector(const FVector& A, const FVector& B);
-protected:
-	void GetVelocity(float& OutForwardVelocity, float &OutRightVelocity);
 public:
 	UPROPERTY(BlueprintReadOnly)
 	float ForwardVelocity;

@@ -4,7 +4,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "WarriorsCharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
@@ -18,7 +18,8 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 //////////////////////////////////////////////////////////////////////////
 // AWarriorsCharacter
 
-AWarriorsCharacter::AWarriorsCharacter()
+AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UWarriorsCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -27,7 +28,6 @@ AWarriorsCharacter::AWarriorsCharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
-
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
@@ -84,7 +84,7 @@ void AWarriorsCharacter::BeginPlay()
 	TSoftObjectPtr<USkeletalMesh> MeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Chest_Arms.SK_Chest_Arms")));
 	TSoftObjectPtr<USkeletalMesh> HeadMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Head_Teeth_Tongue.SK_Head_Teeth_Tongue")));
 	TSoftObjectPtr<USkeletalMesh> HandsMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Hands.SK_Hands")));
-	TSoftObjectPtr<USkeletalMesh> LegsMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Legs.SK_Legs")));
+	TSoftObjectPtr<USkeletalMesh> LegsMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/CivilianClothing_A/SK_Civilian_Trousers_A_Green.SK_Civilian_Trousers_A_Green")));
 	TSoftObjectPtr<USkeletalMesh> FeetMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Feet.SK_Feet")));
 	TSoftObjectPtr<USkeletalMesh> EyesMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Eyes.SK_Eyes")));
 	TSoftObjectPtr<USkeletalMesh> HairMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Hair.SK_Hair")));
