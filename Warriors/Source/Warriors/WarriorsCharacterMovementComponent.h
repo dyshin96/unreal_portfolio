@@ -11,8 +11,9 @@ class WARRIORS_API UWarriorsCharacterMovementComponent : public UCharacterMoveme
 	GENERATED_BODY()
 
 private:
+	float BeforeTurnControllerYaw;
 	float BeforeTurnCharacterYaw;
-	const float CameraTurnAngle = 60.0f;
+	const float CameraTurnAngle = 50.0f;
 	const float CharacterTurnCameraDirTime = 1.0f;
 	const float CharacterTurnWaitTime = 1.0f;
 	float AccumulateCameraTurnTime = 0.0f;
@@ -23,6 +24,6 @@ protected:
 public:
 	void PerformMovement(float DeltaTime) override;
 	void GetNormalizedVelocity(float& OutForwardVelocity, float& OutRightVelocity);
-
-
+	bool IsTurningToCamera();
+	float GetTurnCameraHalfNormalizedValue();
 };

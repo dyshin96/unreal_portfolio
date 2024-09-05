@@ -17,4 +17,8 @@ public:
 	float ForwardVelocity;
 	UPROPERTY(BlueprintReadOnly)
 	float RightVelocity;
+	UPROPERTY(BlueprintReadOnly)
+	bool bTurningToCamera;
+	UPROPERTY(BlueprintReadOnly)
+	float TurningToCameraAlpha = 0.0f;
 };

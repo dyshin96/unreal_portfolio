@@ -14,6 +14,8 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		if (IsValid(MovementComponent))
 		{
 			MovementComponent->GetNormalizedVelocity(ForwardVelocity, RightVelocity);
+			TurningToCameraAlpha = MovementComponent->GetTurnCameraHalfNormalizedValue();
+			UE_LOG(LogTemp, Warning, TEXT("TurningToCameraAlpha : %f"), TurningToCameraAlpha);
 		}
 	}
 }

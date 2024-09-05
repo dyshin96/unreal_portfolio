@@ -27,15 +27,14 @@ void UWarriorsCharacterMovementComponent::PerformMovement(float DeltaTime)
 
 		if (bTurningToCamera)
 		{
-			float CurrentControlYaw = Character->GetControlRotation().Yaw;
-			float TotalTime = CharacterTurnWaitTime + CharacterTurnCameraDirTime;
 			// DeltaYaw는 현재 캐릭터의 Yaw와 컨트롤러의 Yaw 사이의 최단 경로 각도 차이
-			float DeltaYaw = FMath::FindDeltaAngleDegrees(BeforeTurnCharacterYaw, CurrentControlYaw);
+			float DeltaYaw = FMath::FindDeltaAngleDegrees(BeforeTurnCharacterYaw, BeforeTurnControllerYaw);
 			float LerpYaw = FMath::LerpStable(BeforeTurnCharacterYaw, BeforeTurnCharacterYaw + DeltaYaw, (AccumulateCameraTurnTime - CharacterTurnWaitTime) / CharacterTurnCameraDirTime);
 			FRotator CharacterRotator = Character->GetActorRotation();
 			CharacterRotator.Yaw = LerpYaw;
 			Character->SetActorRotation(CharacterRotator);
 
+			float TotalTime = CharacterTurnWaitTime + CharacterTurnCameraDirTime;
 			if (AccumulateCameraTurnTime >= TotalTime)
 			{
 				bStartCameraDirTurnTimer = false;
@@ -45,6 +44,7 @@ void UWarriorsCharacterMovementComponent::PerformMovement(float DeltaTime)
 		}
 		else
 		{
+			BeforeTurnControllerYaw = Character->GetControlRotation().Yaw;
 			BeforeTurnCharacterYaw = Character->GetActorRotation().Yaw;
 		}
 
@@ -75,4 +75,24 @@ void UWarriorsCharacterMovementComponent::GetNormalizedVelocity(float& OutForwar
 		OutForwardVelocity = 0.0f;
 		OutRightVelocity = 0.0f;
 	}
+}
+
+bool UWarriorsCharacterMovementComponent::IsTurningToCamera()
+{
+	return bTurningToCamera;
+}
+
+float UWarriorsCharacterMovementComponent::GetTurnCameraHalfNormalizedValue()
+{
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (IsValid(Character))
+	{
+		float MaxDifferYaw = 50.0f;
+		float CurrentCharacterYaw = Character->GetActorRotation().Yaw;
+		float CurrentControlYaw = Character->GetControlRotation().Yaw;
+		float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentCharacterYaw, CurrentControlYaw);
+		return FMath::Clamp((DeltaYaw + MaxDifferYaw), 0.0f, 100.0f) / (2.0f * MaxDifferYaw);
+	}
+
+	return 0.0f;
 }
