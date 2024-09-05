@@ -16,16 +16,16 @@ void UWarriorsCharacterMovementComponent::PerformMovement(float DeltaTime)
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (IsValid(Character))
 	{
-		if (bStartAccumulateCameraTurnTime)
+		if (bStartCameraDirTurnTimer)
 		{
 			AccumulateCameraTurnTime += DeltaTime;
 			if (AccumulateCameraTurnTime > CharacterTurnWaitTime)
 			{
-				bIsTurningToCamera = true;
+				bTurningToCamera = true;
 			}
 		}
 
-		if (bIsTurningToCamera)
+		if (bTurningToCamera)
 		{
 			float CurrentControlYaw = Character->GetControlRotation().Yaw;
 			float TotalTime = CharacterTurnWaitTime + CharacterTurnCameraDirTime;
@@ -38,8 +38,8 @@ void UWarriorsCharacterMovementComponent::PerformMovement(float DeltaTime)
 
 			if (AccumulateCameraTurnTime >= TotalTime)
 			{
-				bStartAccumulateCameraTurnTime = false;
-				bIsTurningToCamera = false;
+				bStartCameraDirTurnTimer = false;
+				bTurningToCamera = false;
 				AccumulateCameraTurnTime = 0.0f;
 			}
 		}
@@ -52,9 +52,9 @@ void UWarriorsCharacterMovementComponent::PerformMovement(float DeltaTime)
 		FVector ControllerForward = Character->GetControlRotation().Vector();
 		float Degrees = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(ForwardVector, ControllerForward)));
 
-		if (FMath::Abs(Degrees) > 60.0f)
+		if (FMath::Abs(Degrees) > CameraTurnAngle)
 		{
-			bStartAccumulateCameraTurnTime = true;
+			bStartCameraDirTurnTimer = true;
 		}
 	}
 }

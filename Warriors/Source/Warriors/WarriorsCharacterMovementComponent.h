@@ -12,12 +12,12 @@ class WARRIORS_API UWarriorsCharacterMovementComponent : public UCharacterMoveme
 
 private:
 	float BeforeTurnCharacterYaw;
-	const float CameraTurnAngle = 90.0f;
+	const float CameraTurnAngle = 60.0f;
 	const float CharacterTurnCameraDirTime = 1.0f;
 	const float CharacterTurnWaitTime = 1.0f;
 	float AccumulateCameraTurnTime = 0.0f;
-	bool bIsTurningToCamera = false;
-	bool bStartAccumulateCameraTurnTime = false;
+	bool bTurningToCamera = false;
+	bool bStartCameraDirTurnTimer = false;
 protected:
 	virtual void BeginPlay() override;
 public:
