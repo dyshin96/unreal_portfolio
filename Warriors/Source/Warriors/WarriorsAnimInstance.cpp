@@ -14,8 +14,11 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		if (IsValid(MovementComponent))
 		{
 			MovementComponent->GetNormalizedVelocity(ForwardVelocity, RightVelocity);
-			TurningToCameraAlpha = MovementComponent->GetTurnCameraHalfNormalizedValue();
-			UE_LOG(LogTemp, Warning, TEXT("TurningToCameraAlpha : %f"), TurningToCameraAlpha);
+			bHorizontalMoving = MovementComponent->IsHorizontalMoving();
+			TurningToCameraAlpha = MovementComponent->GetTurnCameraHalfNormalizedValue(DeltaSeconds);
+			bTurningToCamera = MovementComponent->IsTurningToCamera();
+			bTurningRight = MovementComponent->IsTurningRight();
+			RotateRate = MovementComponent->GetTurnCameraRotateRate();
 		}
 	}
 }

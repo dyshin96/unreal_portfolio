@@ -12,7 +12,11 @@ void UWarriorsCharacterMovementComponent::BeginPlay()
 void UWarriorsCharacterMovementComponent::PerformMovement(float DeltaTime)
 {
 	Super::PerformMovement(DeltaTime);
+	CharacterTurnCamera(DeltaTime);
+}
 
+void UWarriorsCharacterMovementComponent::CharacterTurnCamera(float DeltaTime)
+{
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (IsValid(Character))
 	{
@@ -66,9 +70,8 @@ void UWarriorsCharacterMovementComponent::GetNormalizedVelocity(float& OutForwar
 
 	if (FMath::IsNearlyZero(GetMaxSpeed()) == false)
 	{
-		OutForwardVelocity = LocalVelocity.X / GetMaxSpeed();
-
-		OutRightVelocity = LocalVelocity.Y / GetMaxSpeed();
+		OutForwardVelocity = LocalVelocity.X ;
+		OutRightVelocity = LocalVelocity.Y;
 	}
 	else
 	{
@@ -82,7 +85,14 @@ bool UWarriorsCharacterMovementComponent::IsTurningToCamera()
 	return bTurningToCamera;
 }
 
-float UWarriorsCharacterMovementComponent::GetTurnCameraHalfNormalizedValue()
+bool UWarriorsCharacterMovementComponent::IsTurningRight()
+{
+	float DeltaYaw = FMath::FindDeltaAngleDegrees(BeforeTurnCharacterYaw, BeforeTurnControllerYaw);
+	float LerpYaw = FMath::LerpStable(BeforeTurnCharacterYaw, BeforeTurnCharacterYaw + DeltaYaw, (AccumulateCameraTurnTime - CharacterTurnWaitTime) / CharacterTurnCameraDirTime);
+	return LerpYaw > 0.0f;
+}
+
+float UWarriorsCharacterMovementComponent::GetTurnCameraHalfNormalizedValue(float DeltaTime)
 {
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (IsValid(Character))
@@ -91,8 +101,28 @@ float UWarriorsCharacterMovementComponent::GetTurnCameraHalfNormalizedValue()
 		float CurrentCharacterYaw = Character->GetActorRotation().Yaw;
 		float CurrentControlYaw = Character->GetControlRotation().Yaw;
 		float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentCharacterYaw, CurrentControlYaw);
-		return FMath::Clamp((DeltaYaw + MaxDifferYaw), 0.0f, 100.0f) / (2.0f * MaxDifferYaw);
+		float HalfNormalizedYaw = FMath::Clamp((DeltaYaw + MaxDifferYaw), 0.0f, 100.0f) / (2.0f * MaxDifferYaw);
+		float InterpSpeed = 2.0f;
+		return HalfNormalizedTurnCameraAlpha = FMath::FInterpTo(HalfNormalizedTurnCameraAlpha, HalfNormalizedYaw, DeltaTime, InterpSpeed);
 	}
 
 	return 0.0f;
+}
+
+bool UWarriorsCharacterMovementComponent::IsHorizontalMoving()
+{
+	float ForwardVel;
+	float RightVel;
+	GetNormalizedVelocity(ForwardVel, RightVel);
+	float Horizontal = FMath::Abs(ForwardVel) + FMath::Abs(RightVel);
+	return Horizontal > GetMaxSpeed() / 3.0f;
+}
+
+float UWarriorsCharacterMovementComponent::GetTurnCameraRotateRate()
+{
+	float DeltaYaw = FMath::FindDeltaAngleDegrees(BeforeTurnCharacterYaw, BeforeTurnControllerYaw);
+	float LerpYaw = FMath::LerpStable(BeforeTurnCharacterYaw, BeforeTurnCharacterYaw + DeltaYaw, (AccumulateCameraTurnTime - CharacterTurnWaitTime) / CharacterTurnCameraDirTime);
+	float RotateRate = FMath::Abs(LerpYaw / (BeforeTurnCharacterYaw + DeltaYaw));
+	UE_LOG(LogTemp, Warning, TEXT("RotateRate : %f"), RotateRate);
+	return RotateRate;
 }

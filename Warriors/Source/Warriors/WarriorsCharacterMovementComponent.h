@@ -19,11 +19,20 @@ private:
 	float AccumulateCameraTurnTime = 0.0f;
 	bool bTurningToCamera = false;
 	bool bStartCameraDirTurnTimer = false;
+	float HalfNormalizedTurnCameraAlpha = 0.5f;
+
+private:
+	void CharacterTurnCamera(float DeltaTime);
 protected:
 	virtual void BeginPlay() override;
 public:
 	void PerformMovement(float DeltaTime) override;
 	void GetNormalizedVelocity(float& OutForwardVelocity, float& OutRightVelocity);
 	bool IsTurningToCamera();
-	float GetTurnCameraHalfNormalizedValue();
+	bool IsTurningRight();
+	float GetTurnCameraHalfNormalizedValue(float DeltaTime);
+	bool IsHorizontalMoving();
+	float GetTurnCameraRotateRate();
+
+
 };

@@ -21,4 +21,12 @@ public:
 	bool bTurningToCamera;
 	UPROPERTY(BlueprintReadOnly)
 	float TurningToCameraAlpha = 0.0f;
+	UPROPERTY(BlueprintReadOnly)
+	float RotateRate;
+	UPROPERTY(BlueprintReadOnly)
+	bool bHorizontalMoving;
+	UPROPERTY(BlueprintReadOnly)
+	bool bTurningRight = false;
+
+
 };
