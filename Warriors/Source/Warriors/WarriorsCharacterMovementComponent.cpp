@@ -88,8 +88,16 @@ bool UWarriorsCharacterMovementComponent::IsTurningToCamera()
 bool UWarriorsCharacterMovementComponent::IsTurningRight()
 {
 	float DeltaYaw = FMath::FindDeltaAngleDegrees(BeforeTurnCharacterYaw, BeforeTurnControllerYaw);
-	float LerpYaw = FMath::LerpStable(BeforeTurnCharacterYaw, BeforeTurnCharacterYaw + DeltaYaw, (AccumulateCameraTurnTime - CharacterTurnWaitTime) / CharacterTurnCameraDirTime);
-	return LerpYaw > 0.0f;
+	return DeltaYaw > 0.0f;
+}
+
+bool UWarriorsCharacterMovementComponent::IsHorizontalMoving()
+{
+	float ForwardVel;
+	float RightVel;
+	GetNormalizedVelocity(ForwardVel, RightVel);
+	float Horizontal = FMath::Abs(ForwardVel) + FMath::Abs(RightVel);
+	return Horizontal > GetMaxSpeed() / 3.0f;
 }
 
 float UWarriorsCharacterMovementComponent::GetTurnCameraHalfNormalizedValue(float DeltaTime)
@@ -105,24 +113,16 @@ float UWarriorsCharacterMovementComponent::GetTurnCameraHalfNormalizedValue(floa
 		float InterpSpeed = 2.0f;
 		return HalfNormalizedTurnCameraAlpha = FMath::FInterpTo(HalfNormalizedTurnCameraAlpha, HalfNormalizedYaw, DeltaTime, InterpSpeed);
 	}
-
 	return 0.0f;
-}
-
-bool UWarriorsCharacterMovementComponent::IsHorizontalMoving()
-{
-	float ForwardVel;
-	float RightVel;
-	GetNormalizedVelocity(ForwardVel, RightVel);
-	float Horizontal = FMath::Abs(ForwardVel) + FMath::Abs(RightVel);
-	return Horizontal > GetMaxSpeed() / 3.0f;
 }
 
 float UWarriorsCharacterMovementComponent::GetTurnCameraRotateRate()
 {
-	float DeltaYaw = FMath::FindDeltaAngleDegrees(BeforeTurnCharacterYaw, BeforeTurnControllerYaw);
-	float LerpYaw = FMath::LerpStable(BeforeTurnCharacterYaw, BeforeTurnCharacterYaw + DeltaYaw, (AccumulateCameraTurnTime - CharacterTurnWaitTime) / CharacterTurnCameraDirTime);
-	float RotateRate = FMath::Abs(LerpYaw / (BeforeTurnCharacterYaw + DeltaYaw));
-	UE_LOG(LogTemp, Warning, TEXT("RotateRate : %f"), RotateRate);
-	return RotateRate;
+	if (bTurningToCamera)
+	{
+		float RotateRate = (AccumulateCameraTurnTime - CharacterTurnWaitTime) / CharacterTurnCameraDirTime;
+		UE_LOG(LogTemp, Warning, TEXT("RotateRate : %f"), RotateRate);
+		return RotateRate;
+	}
+	return 0.0f;
 }

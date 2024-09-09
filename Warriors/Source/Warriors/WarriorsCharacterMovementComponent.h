@@ -30,9 +30,7 @@ public:
 	void GetNormalizedVelocity(float& OutForwardVelocity, float& OutRightVelocity);
 	bool IsTurningToCamera();
 	bool IsTurningRight();
-	float GetTurnCameraHalfNormalizedValue(float DeltaTime);
 	bool IsHorizontalMoving();
+	float GetTurnCameraHalfNormalizedValue(float DeltaTime);
 	float GetTurnCameraRotateRate();
-
-
 };
