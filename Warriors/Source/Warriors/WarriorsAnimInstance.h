@@ -3,6 +3,8 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "WarriorsStandingState.h"
+#include "WarriorsAnimationInstanceSettings.h"
 #include "WarriorsAnimInstance.generated.h"
 UCLASS()
 class UWarriorsAnimInstance : public UAnimInstance
@@ -11,8 +13,16 @@ class UWarriorsAnimInstance : public UAnimInstance
 
 private:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
-	static FVector ProjectVectorOntoVector(const FVector& A, const FVector& B);
+	void RefreshGameThreadLocomotionState();
+	void RefreshStandingMovement();
+
 public:
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UWarriorsAnimationInstanceSettings> Settings;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	FWarriorsStandingState StandingState;
+
 	UPROPERTY(BlueprintReadOnly)
 	float ForwardVelocity;
 	UPROPERTY(BlueprintReadOnly)

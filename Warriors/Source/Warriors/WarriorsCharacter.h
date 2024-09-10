@@ -67,9 +67,15 @@ class AWarriorsCharacter : public ACharacter
 	UPROPERTY()
 	USkeletalMeshComponent* Helmet;
 
+private:
+#pragma region locomotion
+	struct FWarriorsLocomotionState LocomotionState;
+#pragma endregion 
+
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
+	void RefreshLocomotion();
 	void InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent);
 protected:
 
@@ -87,7 +93,7 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
-
+	virtual void Tick(float DeltaSeconds) override;
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

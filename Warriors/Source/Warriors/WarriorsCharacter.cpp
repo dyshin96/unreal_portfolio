@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "WarriorsCharacter.h"
+#include "WarriorsLocomotionState.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -67,6 +68,18 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	InitSubMeshs(EyesMesh);
 	InitSubMeshs(HairMesh);
 	InitSubMeshs(HelmetMesh);
+
+}
+
+void AWarriorsCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	LocomotionState.Velocity = GetVelocity();
+	LocomotionState.HorizontalSpeed = UE_REAL_TO_FLOAT(GetVelocity().Size2D());
+}
+
+void AWarriorsCharacter::RefreshLocomotion()
+{
 
 }
 

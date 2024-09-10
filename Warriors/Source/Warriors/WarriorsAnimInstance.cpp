@@ -22,3 +22,20 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		}
 	}
 }
+
+void UWarriorsAnimInstance::RefreshGameThreadLocomotionState()
+{
+#if WITH_EDITOR
+	if (!IsValid(GetWorld()) || !GetWorld()->IsGameWorld())
+	{
+		return;
+	}
+#endif
+
+	if (!IsValid(Settings))
+	{
+		return;
+	}
+
+	const float Speed(LocomotionStae.HorizontalSpeed / );
+}
