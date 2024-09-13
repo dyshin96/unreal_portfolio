@@ -18,7 +18,7 @@ struct FWarriorsLocomotionState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	float HorizontalSpeed{ 0.0f };
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
-	FVector Velocity{ForceInit};
+	FVector Velocity{ ForceInit };
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	FVector PreviousVelocity{ ForceInit };
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
@@ -29,6 +29,8 @@ struct FWarriorsLocomotionState
 	FVector Location{ ForceInit };
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	FVector Rotation{ ForceInit };
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	FQuat Quat{ ForceInit };
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	float HorizontalScale{1.0f};
 

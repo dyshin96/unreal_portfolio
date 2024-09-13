@@ -17,6 +17,7 @@ private:
 protected:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeBeginPlay() override;
+	virtual FAnimInstanceProxy CreateAnimInstanceProxy() override;
 	UFUNCTION(BlueprintPure, Category = "Warriors|LinkedAnimInstance", Meta = (BlueprintThreadSafe, ReturnDisplayName = "Parent"))
 	UWarriorsAnimInstance* GetParent() const;
 };

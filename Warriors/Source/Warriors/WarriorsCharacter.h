@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "WarriorsLocomotionState.h"
 #include "WarriorsCharacter.generated.h"
 
 class USpringArmComponent;
@@ -69,7 +70,7 @@ class AWarriorsCharacter : public ACharacter
 
 private:
 #pragma region locomotion
-	struct FWarriorsLocomotionState LocomotionState;
+	FWarriorsLocomotionState LocomotionState;
 #pragma endregion 
 
 public:
@@ -99,5 +100,7 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	FWarriorsLocomotionState GetLocomotionState() const { return LocomotionState; }
 };
 
