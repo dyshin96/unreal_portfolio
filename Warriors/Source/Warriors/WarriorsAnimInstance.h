@@ -18,7 +18,7 @@ protected:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeBeginPlay() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
-	virtual class FAnimInstanceProxy* CreateAnimInstanceProxy() override;
+	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
 private:
 	void RefreshGameThreadLocomotionState();
 	void RefreshVelocityBlend();

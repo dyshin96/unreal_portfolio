@@ -126,3 +126,8 @@ float UWarriorsCharacterMovementComponent::GetTurnCameraRotateRate()
 	}
 	return 0.0f;
 }
+
+inline FWarriorsMovementGaitSettings& UWarriorsCharacterMovementComponent::GetGaitSettings()
+{
+	return GaitSettings;
+}

@@ -4,7 +4,9 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "WarriorsMovementGaitSettings.h"
 #include "WarriorsCharacterMovementComponent.h"
+#include "WarriorsGamePlayTags.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
@@ -67,13 +69,13 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	InitSubMeshs(EyesMesh);
 	InitSubMeshs(HairMesh);
 	InitSubMeshs(HelmetMesh);
-
 }
 
 void AWarriorsCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	RefreshLocomotion();
+	RefreshGait();
 }
 
 void AWarriorsCharacter::RefreshLocomotion()
@@ -87,6 +89,57 @@ void AWarriorsCharacter::InitSubMeshs(USkeletalMeshComponent* SkeletalMeshCompon
 {
 	SkeletalMeshComponent->SetupAttachment(GetMesh());	
 	SkeletalMeshComponent->SetLeaderPoseComponent(GetMesh());
+}
+
+void AWarriorsCharacter::RefreshGait()
+{
+	const auto MaxAllowedGait{ CalculateMaxAllowedGait() };
+
+	// Update the character max walk speed to the configured speeds based on the currently max allowed gait.
+
+	//#todo 필요하면 추가예정 
+	//WarriorsCharacterMovementComponent->SetMaxAllowedGait(MaxAllowedGait);
+
+	const auto ActualGait{ CalculateActualGait(MaxAllowedGait) };
+
+	SetGait(ActualGait);
+}
+
+void AWarriorsCharacter::SetGait(const FGameplayTag& NewGait)
+{
+	if (Gait != NewGait)
+	{
+		const auto PreviousGait{ Gait };
+
+		Gait = NewGait;
+
+		OnGaitChanged(PreviousGait);
+	}
+}
+
+void AWarriorsCharacter::OnGaitChanged_Implementation(const FGameplayTag& PreviousGait) {}
+
+FGameplayTag AWarriorsCharacter::CalculateMaxAllowedGait() const
+{
+	//추후 수정 예정 
+	return WarriorsGaitTags::Sprinting;
+}
+
+FGameplayTag AWarriorsCharacter::CalculateActualGait(const FGameplayTag& MaxAllowedGait) const
+{
+	const auto& GaitSettings{ WarriorsCharacterMovementComponent->GetGaitSettings() };
+
+	if (LocomotionState.HorizontalSpeed < GaitSettings.GetMaxWalkSpeed() + 10.0f)
+	{
+		return WarriorsGaitTags::Walking;
+	}
+
+	if (LocomotionState.HorizontalSpeed < GaitSettings.GetMaxRunSpeed() + 10.0f || MaxAllowedGait != WarriorsGaitTags::Sprinting)
+	{
+		return WarriorsGaitTags::Running;
+	}
+
+	return WarriorsGaitTags::Sprinting;
 }
 
 void AWarriorsCharacter::BeginPlay()
@@ -109,6 +162,8 @@ void AWarriorsCharacter::BeginPlay()
 	FeetMesh->SetSkeletalMesh(FeetMeshPtr.LoadSynchronous());
 	EyesMesh->SetSkeletalMesh(EyesMeshPtr.LoadSynchronous());
 	HairMesh->SetSkeletalMesh(HairMeshPtr.LoadSynchronous());
+
+	WarriorsCharacterMovementComponent = Cast<UWarriorsCharacterMovementComponent>(GetCharacterMovement());
 }
 //////////////////////////////////////////////////////////////////////////
 // Input

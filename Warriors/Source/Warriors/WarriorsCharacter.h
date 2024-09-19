@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "WarriorsGameplayTags.h"
 #include "Logging/LogMacros.h"
 #include "WarriorsLocomotionState.h"
 #include "WarriorsCharacter.generated.h"
@@ -71,14 +72,26 @@ class AWarriorsCharacter : public ACharacter
 private:
 #pragma region locomotion
 	FWarriorsLocomotionState LocomotionState;
+
+	UPROPERTY(VisibleAnywhere, Category = "State|Warriors Character", Transient)
+	FGameplayTag Gait{WarriorsGaitTags::Walking};
 #pragma endregion 
 
+	UPROPERTY()
+	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
 	void RefreshLocomotion();
 	void InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent);
+	void RefreshGait();
+	void SetGait(const FGameplayTag& NewGait);
+	FGameplayTag CalculateMaxAllowedGait() const;
+	FGameplayTag CalculateActualGait(const FGameplayTag& MaxAllowedGait) const;
+
 protected:
+	UFUNCTION(BlueprintNativeEvent, Category = "Als Character")
+	void OnGaitChanged(const FGameplayTag& PreviousGait);
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);

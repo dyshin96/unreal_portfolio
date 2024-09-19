@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "WarriorsMovementGaitSettings.h"
 #include "WarriorsCharacterMovementComponent.generated.h"
 
 UCLASS()
@@ -21,6 +22,8 @@ private:
 	bool bStartCameraDirTurnTimer = false;
 	float HalfNormalizedTurnCameraAlpha = 0.5f;
 
+	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
+	FWarriorsMovementGaitSettings GaitSettings;
 private:
 	void CharacterTurnCamera(float DeltaTime);
 protected:
@@ -33,4 +36,6 @@ public:
 	bool IsHorizontalMoving();
 	float GetTurnCameraHalfNormalizedValue(float DeltaTime);
 	float GetTurnCameraRotateRate();
+
+	FWarriorsMovementGaitSettings& GetGaitSettings();
 };

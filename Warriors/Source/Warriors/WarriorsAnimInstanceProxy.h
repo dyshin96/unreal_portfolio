@@ -3,17 +3,18 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstanceProxy.h"
-#include "WarriorsAnimInstance.generated.h"
+#include "WarriorsAnimInstanceProxy.generated.h"
 
 class UWarriorsAnimInstance;
 
 USTRUCT()
-class FWarriorsAnimInstanceProxy : public FAnimInstanceProxy
+struct FWarriorsAnimInstanceProxy : public FAnimInstanceProxy
 {
 	GENERATED_BODY()
 
 	friend class UWarriorsAnimInstance;
-
+	friend class UWarriorsLinkedAnimInstance;
 public:
+	FWarriorsAnimInstanceProxy() = default;
 	explicit FWarriorsAnimInstanceProxy(class UAnimInstance* AnimationInstance);
 };

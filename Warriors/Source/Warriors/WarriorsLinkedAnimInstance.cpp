@@ -26,7 +26,7 @@ void UWarriorsLinkedAnimInstance::NativeBeginPlay()
 	Super::NativeBeginPlay();
 }
 
-FAnimInstanceProxy UWarriorsLinkedAnimInstance::CreateAnimInstanceProxy()
+FAnimInstanceProxy* UWarriorsLinkedAnimInstance::CreateAnimInstanceProxy()
 {
 	return new FWarriorsAnimInstanceProxy {this};
 }

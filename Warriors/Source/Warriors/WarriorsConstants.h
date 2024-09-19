@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "WarriorConstants.generated.h"
+#include "WarriorsConstants.generated.h"
 
 UCLASS(Meta = (BlueprintThreadSafe))
 class UWarriorsConstants : public UBlueprintFunctionLibrary
