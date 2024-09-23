@@ -7,26 +7,40 @@
 #include "WarriorsStandingState.h"
 #include "WarriorsGroundState.h"
 #include "WarriorsPoseState.h"
+#include "WarriorsFeetState.h"
+#include "WarriorsGameplayTags.h"
 #include "WarriorsAnimationInstanceSettings.h"
 #include "WarriorsAnimInstance.generated.h"
+
+class UWarriorsLinkedAnimInstance;
+
 UCLASS()
 class UWarriorsAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 
+	friend UWarriorsLinkedAnimInstance;
 protected:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeBeginPlay() override;
-	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+	virtual void NativeUpdateAnimation(float DeltaTime) override;
+	virtual void NativeThreadSafeUpdateAnimation(float DeltaTime) override;
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
 private:
 	void RefreshGameThreadLocomotionState();
 	void RefreshVelocityBlend();
+	void RefreshFeet(const float DeltaTime);
+	void RefreshRotationYawOffsets(const float ViewRelativeVelocityYawAngle);
+	void RefreshMovementDirection(const float ViewRelativeVelocityYawAngle);
 private:
+	UPROPERTY()
 	class AWarriorsCharacter* Character;
+	FGameplayTag Gait;
 
 protected:
 	FVector3f GetRelativeVelocity() const;
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
+	void RefreshGroundedMovement();
 
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshStandingMovement();
@@ -49,6 +63,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FWarriorsPoseState PoseState;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	FWarriorsFeetState FeetState;
 
 	UPROPERTY(BlueprintReadOnly)
 	float ForwardVelocity;

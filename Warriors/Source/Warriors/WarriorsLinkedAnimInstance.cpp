@@ -30,3 +30,11 @@ FAnimInstanceProxy* UWarriorsLinkedAnimInstance::CreateAnimInstanceProxy()
 {
 	return new FWarriorsAnimInstanceProxy {this};
 }
+
+void UWarriorsLinkedAnimInstance::RefreshStandingMovement()
+{
+	if (Parent.IsValid())
+	{
+		Parent->RefreshStandingMovement();
+	}
+}

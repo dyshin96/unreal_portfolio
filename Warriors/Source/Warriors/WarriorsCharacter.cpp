@@ -9,6 +9,7 @@
 #include "WarriorsGamePlayTags.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+#include "Net/Core/PushModel/PushModel.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -74,8 +75,49 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 void AWarriorsCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	RefreshLocomotionLocationAndRotation();
 	RefreshLocomotion();
 	RefreshGait();
+}
+
+void AWarriorsCharacter::SetInputDirection(FVector NewInputDirection)
+{
+	NewInputDirection = NewInputDirection.GetSafeNormal();
+	InputDirection = NewInputDirection;
+}
+
+void AWarriorsCharacter::RefreshInput(const float DeltaTime)
+{
+	if (GetLocalRole() >= ROLE_AutonomousProxy)
+	{
+		SetInputDirection(GetCharacterMovement()->GetCurrentAcceleration() / GetCharacterMovement()->GetMaxAcceleration());
+	}
+
+	LocomotionState.bHasInput = InputDirection.SizeSquared() > UE_KINDA_SMALL_NUMBER;
+
+	if (LocomotionState.bHasInput)
+	{
+		LocomotionState.InputYawAngle = UE_REAL_TO_FLOAT(FMath::RadiansToDegrees(FMath::Atan2(InputDirection.Y, InputDirection.X)));
+	}
+
+}
+
+void AWarriorsCharacter::RefreshLocomotionLocationAndRotation()
+{
+	const auto& ActorTransform{ GetActorTransform() };
+
+	// If network smoothing is disabled, then return regular actor transform.
+
+	if (GetCharacterMovement()->NetworkSmoothingMode == ENetworkSmoothingMode::Disabled)
+	{
+		LocomotionState.Location = ActorTransform.GetLocation();
+		LocomotionState.Rotation = GetActorRotation();
+	}
+	else if (GetMesh()->IsUsingAbsoluteRotation())
+	{
+		LocomotionState.Location = ActorTransform.TransformPosition(GetMesh()->GetRelativeLocation() - GetBaseTranslationOffset());
+		LocomotionState.Rotation = GetActorRotation();
+	}
 }
 
 void AWarriorsCharacter::RefreshLocomotion()
@@ -83,7 +125,14 @@ void AWarriorsCharacter::RefreshLocomotion()
 	LocomotionState.Velocity = GetVelocity();
 	LocomotionState.HorizontalSpeed = UE_REAL_TO_FLOAT(GetVelocity().Size2D());
 	LocomotionState.Quat = GetActorRotation().Quaternion();
-}
+
+	static constexpr float bHasHorizontalSpeedTheshold{ 1.0f };
+	LocomotionState.bHasVelocity = LocomotionState.HorizontalSpeed > bHasHorizontalSpeedTheshold;
+	if (LocomotionState.bHasVelocity)
+	{
+		LocomotionState.VelocityYawAngle = UE_REAL_TO_FLOAT(FMath::RadiansToDegrees(FMath::Atan2(LocomotionState.Velocity.Y, LocomotionState.Velocity.X)));
+	}
+}	
 
 void AWarriorsCharacter::InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent)
 {

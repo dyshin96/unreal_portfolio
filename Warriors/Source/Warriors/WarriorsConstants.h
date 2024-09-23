@@ -19,6 +19,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& PoseGroundedCurveName();
+
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& HipsDirectionLockCurveName();
+
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& FeetCrossingCurveName();
 };
 
 
@@ -38,4 +44,16 @@ inline const FName& UWarriorsConstants::PoseGroundedCurveName()
 {
 	static const FName CurveName(TEXT("PoseGrounded"));
 	return CurveName;
+}
+
+inline const FName& UWarriorsConstants::HipsDirectionLockCurveName()
+{
+	static const FName Name{ TEXTVIEW("HipsDirectionLock") };
+	return Name;
+}
+
+inline const FName& UWarriorsConstants::FeetCrossingCurveName()
+{
+	static const FName Name{ TEXTVIEW("FeetCrossing") };
+	return Name;
 }

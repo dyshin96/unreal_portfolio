@@ -20,28 +20,40 @@ void UWarriorsAnimInstance::NativeBeginPlay()
 	ensure(IsValid(Character));
 }
 
-void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 {
-	Super::NativeUpdateAnimation(DeltaSeconds);
+	Super::NativeUpdateAnimation(DeltaTime);
 	
 	if (!IsValid(Character))
 	{
 		return;
 	}
 
-	RefreshGameThreadLocomotionState();
-	
-
 	UWarriorsCharacterMovementComponent* MovementComponent = Cast<UWarriorsCharacterMovementComponent>(Character->FindComponentByClass<UCharacterMovementComponent>());
 	if (IsValid(MovementComponent))
 	{
 		MovementComponent->GetNormalizedVelocity(ForwardVelocity, RightVelocity);
 		bHorizontalMoving = MovementComponent->IsHorizontalMoving();
-		TurningToCameraAlpha = MovementComponent->GetTurnCameraHalfNormalizedValue(DeltaSeconds);
+		TurningToCameraAlpha = MovementComponent->GetTurnCameraHalfNormalizedValue(DeltaTime);
 		bTurningToCamera = MovementComponent->IsTurningToCamera();
 		bTurningRight = MovementComponent->IsTurningRight();
 		RotateRate = MovementComponent->GetTurnCameraRotateRate();
 	}
+
+	Gait = Character->GetGait();
+	RefreshGameThreadLocomotionState();
+}
+
+void UWarriorsAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
+{
+	Super::NativeThreadSafeUpdateAnimation(DeltaTime);
+
+	if (!IsValid(Settings) ||!IsValid(Character))
+	{
+		return;
+	}
+
+	RefreshFeet(DeltaTime);
 }
 
 FAnimInstanceProxy* UWarriorsAnimInstance::CreateAnimInstanceProxy()
@@ -85,6 +97,67 @@ void UWarriorsAnimInstance::RefreshStandingMovement()
 	float BlendRun = Settings->StandingSettings.StrideBlendAmountRunCurve->GetFloatValue(Speed);
 	float BlendWalk = Settings->StandingSettings.StrideBlendAmountWalkCurve->GetFloatValue(Speed);
 	StandingState.StrideBlendAmount = FMath::Lerp(BlendWalk, BlendRun, PoseState.GaitRunningAmount);
+	StandingState.WalkRunBlendAmount = Gait == WarriorsGaitTags::Walking ? 0.0f : 1.0f;
+	
+	CacheLocomotionState.bMovingSmooth = (CacheLocomotionState.bHasInput && CacheLocomotionState.bHasVelocity) || 
+	CacheLocomotionState.HorizontalSpeed > Settings->GeneralSettings.MovingSmoothSpeedThreshold;
+
+	UE_LOG(LogTemp, Warning, TEXT("StrideAmount = %f"), StandingState.StrideBlendAmount);
+	UE_LOG(LogTemp, Warning, TEXT("bMovingSmooth = %d"), CacheLocomotionState.bMovingSmooth);
+	UE_LOG(LogTemp, Warning, TEXT("HorizontalSpeed = %f"), CacheLocomotionState.HorizontalSpeed);
+}
+
+void UWarriorsAnimInstance::RefreshGroundedMovement()
+{
+	if (!IsValid(Settings))
+	{
+		return;
+	}
+	
+	GroundedState.HipsDirectionLockAmount = FMath::Clamp(GetCurveValue(UWarriorsConstants::HipsDirectionLockCurveName()), -1.0f, 1.0f);
+
+	const float ViewRelativeVelocityYawAngle = FMath::UnwindDegrees(CacheLocomotionState.VelocityYawAngle);
+
+	RefreshMovementDirection(ViewRelativeVelocityYawAngle);
+	RefreshRotationYawOffsets(ViewRelativeVelocityYawAngle);
+}
+
+void UWarriorsAnimInstance::RefreshMovementDirection(const float ViewRelativeVelocityYawAngle)
+{
+	if (!IsValid(Settings))
+	{
+		return;
+	}
+
+	static constexpr float ForwardHalfAngle{ 70.0f };
+	static constexpr float AngleThreshold{ 5.0f };
+
+	if (ViewRelativeVelocityYawAngle >= -ForwardHalfAngle - AngleThreshold && ViewRelativeVelocityYawAngle <= ForwardHalfAngle + AngleThreshold)
+	{
+		GroundedState.MovementDirection = EWarriorsMovementDirection::Forward;
+	}
+	else if (ViewRelativeVelocityYawAngle >= ForwardHalfAngle - AngleThreshold && ViewRelativeVelocityYawAngle <= 180.0f - ForwardHalfAngle + AngleThreshold)
+	{
+		GroundedState.MovementDirection = EWarriorsMovementDirection::Right;
+	}
+	else if (ViewRelativeVelocityYawAngle <= -(ForwardHalfAngle - AngleThreshold) && ViewRelativeVelocityYawAngle >= -(180.0f - ForwardHalfAngle + AngleThreshold))
+	{
+		GroundedState.MovementDirection = EWarriorsMovementDirection::Left;
+	}
+	else
+	{
+		GroundedState.MovementDirection = EWarriorsMovementDirection::Backward;
+	}
+}
+
+void UWarriorsAnimInstance::RefreshRotationYawOffsets(const float ViewRelativeVelocityYawAngle)
+{
+	auto& RotationYawOffsets{ GroundedState.RotationYawOffsets };
+
+	RotationYawOffsets.ForwardAngle = Settings->GroundedSettings.RotationYawOffsetForwardCurve->GetFloatValue(ViewRelativeVelocityYawAngle);
+	RotationYawOffsets.BackwardAngle = Settings->GroundedSettings.RotationYawOffsetBackwardCurve->GetFloatValue(ViewRelativeVelocityYawAngle);
+	RotationYawOffsets.LeftAngle = Settings->GroundedSettings.RotationYawOffsetLeftCurve->GetFloatValue(ViewRelativeVelocityYawAngle);
+	RotationYawOffsets.RightAngle = Settings->GroundedSettings.RotationYawOffsetRightCurve->GetFloatValue(ViewRelativeVelocityYawAngle);
 }
 
 void UWarriorsAnimInstance::RefreshGrounded()
@@ -102,6 +175,11 @@ void UWarriorsAnimInstance::RefreshGrounded()
 	}
 
 	RefreshVelocityBlend();
+}
+
+void UWarriorsAnimInstance::RefreshFeet(const float DeltaTime)
+{
+	FeetState.FeetCrossingAmount = FMath::Clamp(GetCurveValue(UWarriorsConstants::FeetCrossingCurveName()), 0.0f, 1.0f);
 }
 
 void UWarriorsAnimInstance::RefreshPoseState()

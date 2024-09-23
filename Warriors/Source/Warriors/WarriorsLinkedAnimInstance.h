@@ -19,8 +19,12 @@ protected:
 	virtual void NativeBeginPlay() override;
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
 
-	UFUNCTION(BlueprintPure, Category = "Warriors|LinkedAnimInstance", Meta = (BlueprintThreadSafe, ReturnDisplayName = "Parent"))
+	UFUNCTION(BlueprintPure, Category = "Warriors|LinkedAnimInstance",
+		Meta = (BlueprintThreadSafe, ReturnDisplayName = "Parent"))
 	UWarriorsAnimInstance* GetParent() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Linked Animation Instance", Meta = (BlueprintThreadSafe))
+	void RefreshStandingMovement();
 };
 
 inline UWarriorsAnimInstance* UWarriorsLinkedAnimInstance::GetParent() const

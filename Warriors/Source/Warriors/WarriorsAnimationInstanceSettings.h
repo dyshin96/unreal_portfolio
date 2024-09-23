@@ -4,6 +4,7 @@
 #include "Engine/DataTable.h"
 #include "WarriorsStandingSettings.h"
 #include "WarriorsGroundedSettings.h"
+#include "WarriorsGeneralAnimationSettings.h"
 #include "WarriorsAnimationInstanceSettings.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
@@ -16,4 +17,6 @@ public:
 	FWarriorsStandingSettings StandingSettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FWarriorsGroundedSettings GroundedSettings;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FWarriorsGeneralAnimationSettings GeneralSettings;
 };

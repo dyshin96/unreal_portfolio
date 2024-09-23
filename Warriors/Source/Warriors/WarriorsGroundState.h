@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "WarriorsMovementDirection.h"
 #include "WarriorsGroundState.generated.h"
 
 USTRUCT(BlueprintType)
@@ -26,6 +27,24 @@ struct FWarriorsVelocityBlendState
 };
 
 USTRUCT(BlueprintType)
+struct FWarriorsRotationYawOffsetsState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors", Meta = (ClampMin = -180, ClampMax = 180, ForceUnits = "deg"))
+	float ForwardAngle{0.0f};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors", Meta = (ClampMin = -180, ClampMax = 180, ForceUnits = "deg"))
+	float BackwardAngle{0.0f};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors", Meta = (ClampMin = -180, ClampMax = 180, ForceUnits = "deg"))
+	float LeftAngle{0.0f};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors", Meta = (ClampMin = -180, ClampMax = 180, ForceUnits = "deg"))
+	float RightAngle{0.0f};
+};
+
+USTRUCT(BlueprintType)
 struct FWarriorsGroundState
 {
 	GENERATED_BODY()
@@ -39,9 +58,9 @@ struct FWarriorsGroundState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	FWarriorsVelocityBlendState VelocityBlend;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
-	//FWarriorsMovementDirectionCache MovementDirection;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	FWarriorsMovementDirectionCache MovementDirection;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
-	//FWarriorsRotationYawOffsetsState RotationYawOffsets;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	FWarriorsRotationYawOffsetsState RotationYawOffsets;
 };

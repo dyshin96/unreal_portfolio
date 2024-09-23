@@ -74,7 +74,9 @@ private:
 	FWarriorsLocomotionState LocomotionState;
 
 	UPROPERTY(VisibleAnywhere, Category = "State|Warriors Character", Transient)
-	FGameplayTag Gait{WarriorsGaitTags::Walking};
+	FGameplayTag Gait{ WarriorsGaitTags::Walking };
+
+	FVector_NetQuantizeNormal InputDirection{ForceInit};
 #pragma endregion 
 
 	UPROPERTY()
@@ -82,6 +84,9 @@ private:
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
+	void SetInputDirection(FVector NewInputDirection);
+	void RefreshInput(const float DeltaTime);
+	void RefreshLocomotionLocationAndRotation();
 	void RefreshLocomotion();
 	void InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent);
 	void RefreshGait();
@@ -115,5 +120,8 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	FWarriorsLocomotionState GetLocomotionState() const { return LocomotionState; }
+
+	FGameplayTag GetGait() const { return Gait; };
+
 };
 
