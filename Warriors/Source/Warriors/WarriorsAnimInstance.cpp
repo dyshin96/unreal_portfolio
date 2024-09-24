@@ -41,7 +41,7 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	}
 
 	Gait = Character->GetGait();
-	RefreshGameThreadLocomotionState();
+	RefreshLocomotionOnGameThread();
 }
 
 void UWarriorsAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
@@ -61,7 +61,7 @@ FAnimInstanceProxy* UWarriorsAnimInstance::CreateAnimInstanceProxy()
 	return new FWarriorsAnimInstanceProxy {this};
 }
 
-void UWarriorsAnimInstance::RefreshGameThreadLocomotionState()
+void UWarriorsAnimInstance::RefreshLocomotionOnGameThread()
 {
 #if WITH_EDITOR
 	if (!IsValid(GetWorld()) || !GetWorld()->IsGameWorld())
@@ -76,6 +76,8 @@ void UWarriorsAnimInstance::RefreshGameThreadLocomotionState()
 	}
 
 	CacheLocomotionState = Character->GetLocomotionState();
+	CacheLocomotionState.bMovingSmooth = (CacheLocomotionState.bHasInput && CacheLocomotionState.bHasVelocity) ||
+		CacheLocomotionState.HorizontalSpeed > Settings->GeneralSettings.MovingSmoothSpeedThreshold;
 }
 
 void UWarriorsAnimInstance::RefreshStandingMovement()
@@ -99,9 +101,6 @@ void UWarriorsAnimInstance::RefreshStandingMovement()
 	StandingState.StrideBlendAmount = FMath::Lerp(BlendWalk, BlendRun, PoseState.GaitRunningAmount);
 	StandingState.WalkRunBlendAmount = Gait == WarriorsGaitTags::Walking ? 0.0f : 1.0f;
 	
-	CacheLocomotionState.bMovingSmooth = (CacheLocomotionState.bHasInput && CacheLocomotionState.bHasVelocity) || 
-	CacheLocomotionState.HorizontalSpeed > Settings->GeneralSettings.MovingSmoothSpeedThreshold;
-
 	UE_LOG(LogTemp, Warning, TEXT("StrideAmount = %f"), StandingState.StrideBlendAmount);
 	UE_LOG(LogTemp, Warning, TEXT("bMovingSmooth = %d"), CacheLocomotionState.bMovingSmooth);
 	UE_LOG(LogTemp, Warning, TEXT("HorizontalSpeed = %f"), CacheLocomotionState.HorizontalSpeed);
@@ -160,6 +159,11 @@ void UWarriorsAnimInstance::RefreshRotationYawOffsets(const float ViewRelativeVe
 	RotationYawOffsets.RightAngle = Settings->GroundedSettings.RotationYawOffsetRightCurve->GetFloatValue(ViewRelativeVelocityYawAngle);
 }
 
+void UWarriorsAnimInstance::InitializeGrounded()
+{
+	GroundedState.VelocityBlend.bInitializationRequired = true;
+}
+
 void UWarriorsAnimInstance::RefreshGrounded()
 {
 #if WITH_EDITOR
@@ -213,9 +217,11 @@ void UWarriorsAnimInstance::RefreshVelocityBlend()
 
 	if (VelocityBlend.bInitializationRequired)
 	{
+		VelocityBlend.bInitializationRequired = false;
+
 		VelocityBlend.ForwardAmount = FMath::Clamp(TargetVelocityBlend.X, 0.0f, 1.0f);
-		VelocityBlend.BackAmount = FMath::Clamp(TargetVelocityBlend.X, -1.0, 0.0f);
-		VelocityBlend.LeftAmount = FMath::Clamp(TargetVelocityBlend.Y, -1.0f, 0.0f);
+		VelocityBlend.BackAmount = FMath::Abs(FMath::Clamp(TargetVelocityBlend.X, -1.0, 0.0f));
+		VelocityBlend.LeftAmount = FMath::Abs(FMath::Clamp(TargetVelocityBlend.Y, -1.0f, 0.0f));
 		VelocityBlend.RightAmount = FMath::Clamp(TargetVelocityBlend.Y, 0.0f, 1.0f);
 	}
 	else
@@ -224,10 +230,12 @@ void UWarriorsAnimInstance::RefreshVelocityBlend()
 		const float DeltaSeconds(GetDeltaSeconds());
 		const float InterpSpeed = Settings->GroundedSettings.VelocityBlendInterpolationSpeed;
 		VelocityBlend.ForwardAmount = FMath::FInterpTo(VelocityBlend.ForwardAmount, FMath::Clamp(TargetVelocityBlend.X, 0.0f, 1.0f), DeltaSeconds, InterpSpeed);
-		VelocityBlend.BackAmount = FMath::FInterpTo(VelocityBlend.BackAmount, FMath::Clamp(TargetVelocityBlend.X, -1.0, 0.0f), DeltaSeconds, InterpSpeed);
-		VelocityBlend.LeftAmount = FMath::FInterpTo(VelocityBlend.LeftAmount, FMath::Clamp(TargetVelocityBlend.Y, -1.0f, 0.0f), DeltaSeconds, InterpSpeed);
+		VelocityBlend.BackAmount = FMath::FInterpTo(VelocityBlend.BackAmount, FMath::Abs(FMath::Clamp(TargetVelocityBlend.X, -1.0, 0.0f)), DeltaSeconds, InterpSpeed);
+		VelocityBlend.LeftAmount = FMath::FInterpTo(VelocityBlend.LeftAmount, FMath::Abs(FMath::Clamp(TargetVelocityBlend.Y, -1.0f, 0.0f)), DeltaSeconds, InterpSpeed);
 		VelocityBlend.RightAmount = FMath::FInterpTo(VelocityBlend.RightAmount, FMath::Clamp(TargetVelocityBlend.Y, 0.0f, 1.0f), DeltaSeconds, InterpSpeed);
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("VelocityBelnd.BackAmount : %f"), VelocityBlend.BackAmount);
 }
 
 FVector3f UWarriorsAnimInstance::GetRelativeVelocity() const

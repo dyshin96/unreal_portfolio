@@ -28,7 +28,7 @@ void UWarriorsLinkedAnimInstance::NativeBeginPlay()
 
 FAnimInstanceProxy* UWarriorsLinkedAnimInstance::CreateAnimInstanceProxy()
 {
-	return new FWarriorsAnimInstanceProxy {this};
+	return new FWarriorsAnimInstanceProxy{ this };
 }
 
 void UWarriorsLinkedAnimInstance::RefreshStandingMovement()
@@ -36,5 +36,29 @@ void UWarriorsLinkedAnimInstance::RefreshStandingMovement()
 	if (Parent.IsValid())
 	{
 		Parent->RefreshStandingMovement();
+	}
+}
+
+void UWarriorsLinkedAnimInstance::RefreshGroundedMovement()
+{
+	if (Parent.IsValid())
+	{
+		Parent->RefreshGroundedMovement();
+	}
+}
+
+void UWarriorsLinkedAnimInstance::RefreshGrounded()
+{
+	if (Parent.IsValid())
+	{
+		Parent->RefreshGrounded();
+	}
+}
+
+void UWarriorsLinkedAnimInstance::InitializeGrounded()
+{
+	if (Parent.IsValid())
+	{
+		Parent->InitializeGrounded();
 	}
 }

@@ -27,7 +27,7 @@ protected:
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaTime) override;
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
 private:
-	void RefreshGameThreadLocomotionState();
+	void RefreshLocomotionOnGameThread();
 	void RefreshVelocityBlend();
 	void RefreshFeet(const float DeltaTime);
 	void RefreshRotationYawOffsets(const float ViewRelativeVelocityYawAngle);
@@ -40,14 +40,16 @@ private:
 protected:
 	FVector3f GetRelativeVelocity() const;
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
+	void InitializeGrounded();
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshGroundedMovement();
-
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshStandingMovement();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshGrounded();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshPoseState();
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	TObjectPtr<UWarriorsAnimationInstanceSettings> Settings;
