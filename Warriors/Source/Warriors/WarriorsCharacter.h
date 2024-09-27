@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "WarriorsMovementSettings.h"
 #include "WarriorsGameplayTags.h"
 #include "Logging/LogMacros.h"
 #include "WarriorsLocomotionState.h"
@@ -76,6 +77,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "State|Warriors Character", Transient)
 	FGameplayTag Gait{ WarriorsGaitTags::Walking };
 
+	UPROPERTY(EditAnyWhere, Category = "Setting|Warriors Character", Transient)
+	TObjectPtr<UWarriorsMovementSettings> WarriorsMovementSettings;
+
 	FVector_NetQuantizeNormal InputDirection{ForceInit};
 #pragma endregion 
 
@@ -114,14 +118,10 @@ protected:
 	virtual void BeginPlay();
 	virtual void Tick(float DeltaSeconds) override;
 public:
-	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
 	FWarriorsLocomotionState GetLocomotionState() const { return LocomotionState; }
-
+	UWarriorsMovementSettings* GetWarriorsMovementSettings() const;
 	FGameplayTag GetGait() const { return Gait; };
-
 };
 

@@ -55,10 +55,26 @@ void UWarriorsLinkedAnimInstance::RefreshGrounded()
 	}
 }
 
+void UWarriorsLinkedAnimInstance::RefreshDynamicTransitions()
+{
+	if (Parent.IsValid())
+	{
+		Parent->RefreshDynamicTransitions();
+	}
+}
+
 void UWarriorsLinkedAnimInstance::InitializeGrounded()
 {
 	if (Parent.IsValid())
 	{
 		Parent->InitializeGrounded();
+	}
+}
+
+void UWarriorsLinkedAnimInstance::SetHipsDirection(EWarriorsHipsDirection HipsDirection)
+{
+	if (Parent.IsValid())
+	{
+		Parent->GroundedState.HipsDirection = HipsDirection;
 	}
 }

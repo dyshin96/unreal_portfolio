@@ -5,6 +5,17 @@
 #include "WarriorsMovementDirection.h"
 #include "WarriorsGroundState.generated.h"
 
+UENUM(BlueprintType)
+enum class EWarriorsHipsDirection : uint8
+{
+	Forward,
+	Backward,
+	LeftForward,
+	LeftBackward,
+	RightForward,
+	RightBackward,
+};
+
 USTRUCT(BlueprintType)
 struct FWarriorsVelocityBlendState
 {
@@ -52,8 +63,8 @@ struct FWarriorsGroundState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors", Meta = (ClampMin = -1, ClampMax = 1))
 	float HipsDirectionLockAmount{0.0f};
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
-	//EWarriorsHipsDirection HipsDirection{EWarriorsHipsDirection::Forward};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	EWarriorsHipsDirection HipsDirection{EWarriorsHipsDirection::Forward};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	FWarriorsVelocityBlendState VelocityBlend;

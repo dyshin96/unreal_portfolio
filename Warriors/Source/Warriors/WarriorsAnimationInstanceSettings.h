@@ -5,6 +5,9 @@
 #include "WarriorsStandingSettings.h"
 #include "WarriorsGroundedSettings.h"
 #include "WarriorsGeneralAnimationSettings.h"
+#include "WarriorsDynamicTransitionsSettings.h"
+#include "WarriorsFeetSettings.h"
+#include "WarriorsTransitionsSettings.h"
 #include "WarriorsAnimationInstanceSettings.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
@@ -19,4 +22,10 @@ public:
 	FWarriorsGroundedSettings GroundedSettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FWarriorsGeneralAnimationSettings GeneralSettings;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FWarriorsDynamicTransitionsSettings DynamicTransitions;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FWarriorsFeetSettings FeetSettings;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FWarriorsTransitionsSettings TransitionsSettings;
 };

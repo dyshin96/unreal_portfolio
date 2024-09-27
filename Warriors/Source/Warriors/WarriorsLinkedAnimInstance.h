@@ -31,7 +31,11 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Linked Animation Instance", Meta = (BlueprintThreadSafe))
 	void RefreshGrounded();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Linked Animation Instance", Meta = (BlueprintThreadSafe))
+	void RefreshDynamicTransitions();
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Linked Animation Instance", Meta = (BlueprintThreadSafe))
 	void InitializeGrounded();
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Linked Animation Instance", Meta = (BlueprintThreadSafe))
+	void SetHipsDirection(EWarriorsHipsDirection HipsDirection);
 };
 
 inline UWarriorsAnimInstance* UWarriorsLinkedAnimInstance::GetParent() const

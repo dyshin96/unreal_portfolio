@@ -17,4 +17,6 @@ struct FWarriorsAnimInstanceProxy : public FAnimInstanceProxy
 public:
 	FWarriorsAnimInstanceProxy() = default;
 	explicit FWarriorsAnimInstanceProxy(class UAnimInstance* AnimationInstance);
+protected:
+	virtual void PostUpdate(UAnimInstance* AnimationInstance) const override;
 };

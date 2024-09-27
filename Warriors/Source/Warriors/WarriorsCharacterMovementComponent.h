@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "WarriorsMovementGaitSettings.h"
+#include "WarriorsMovementSettings.h"
 #include "WarriorsCharacterMovementComponent.generated.h"
 
 UCLASS()
@@ -21,14 +21,31 @@ private:
 	bool bTurningToCamera = false;
 	bool bStartCameraDirTurnTimer = false;
 	float HalfNormalizedTurnCameraAlpha = 0.5f;
+	FGameplayTag CurrentRotationMode;
 
+	UPROPERTY(VisibleAnywhere, Category = "State", Transient, Meta = (ClampMin = 0, ClampMax = 3))
+	float GaitAmouont = 0.0f;
+
+
+	UPROPERTY(VisibleAnywhere, Category = "State")
+	FGameplayTag MaxAllowedGait = WarriorsGaitTags::Running;
 	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
 	FWarriorsMovementGaitSettings GaitSettings;
+	UPROPERTY(VisibleAnywhere, Category = "Settings", Transient)
+	TObjectPtr<UWarriorsMovementSettings> MovementSettings;
+
+	UPROPERTY(VisibleAnywhere, Category = "State")
+	float MaxAccelerationWalking = 0.0f;
 private:
 	void CharacterTurnCamera(float DeltaTime);
 protected:
 	virtual void BeginPlay() override;
+	virtual void InitializeComponent() override;
+	virtual void PhysWalking(const float DeltaTime, int32 IterationCount);
+	void RefreshGroundedMovementSettings();
+	void RefreshGaitSettings();
 public:
+	UWarriorsCharacterMovementComponent();
 	void PerformMovement(float DeltaTime) override;
 	void GetNormalizedVelocity(float& OutForwardVelocity, float& OutRightVelocity);
 	bool IsTurningToCamera();

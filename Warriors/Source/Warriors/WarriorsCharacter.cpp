@@ -4,7 +4,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "WarriorsMovementGaitSettings.h"
+#include "WarriorsMovementSettings.h"
 #include "WarriorsCharacterMovementComponent.h"
 #include "WarriorsGamePlayTags.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -25,7 +25,7 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UWarriorsCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 98.0f);
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -327,4 +327,9 @@ bool AWarriorsCharacter::SaveSkeletalMeshThumbnailToDisk(USkeletalMesh* Skeletal
 
 	UE_LOG(LogTemp, Error, TEXT("Failed to save thumbnail!"));
 	return false;
+}
+
+UWarriorsMovementSettings* AWarriorsCharacter::GetWarriorsMovementSettings() const
+{
+	return WarriorsMovementSettings.Get();
 }

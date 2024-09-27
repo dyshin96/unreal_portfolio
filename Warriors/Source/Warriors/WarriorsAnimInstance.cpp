@@ -29,6 +29,24 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		return;
 	}
 
+	auto* Mesh{ GetSkelMeshComponent() };
+
+	if (Mesh->IsUsingAbsoluteRotation() && IsValid(Mesh->GetAttachParent()))
+	{
+		const auto& ParentTransform{ Mesh->GetAttachParent()->GetComponentTransform() };
+
+		// Manually synchronize mesh rotation with character rotation.
+
+		Mesh->MoveComponent(FVector::ZeroVector, ParentTransform.GetRotation() * Character->GetBaseRotationOffset(), false);
+
+		// Re-cache proxy transforms to match the modified mesh transform.
+
+		const auto& Proxy{ GetProxyOnGameThread<FAnimInstanceProxy>() };
+		const_cast<FTransform&>(Proxy.GetComponentTransform()) = Mesh->GetComponentTransform();
+		const_cast<FTransform&>(Proxy.GetComponentRelativeTransform()) = Mesh->GetRelativeTransform();
+		const_cast<FTransform&>(Proxy.GetActorTransform()) = Character->GetActorTransform();
+	}
+
 	UWarriorsCharacterMovementComponent* MovementComponent = Cast<UWarriorsCharacterMovementComponent>(Character->FindComponentByClass<UCharacterMovementComponent>());
 	if (IsValid(MovementComponent))
 	{
@@ -42,6 +60,7 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
 	Gait = Character->GetGait();
 	RefreshLocomotionOnGameThread();
+	RefreshFeetOnGameThread();
 }
 
 void UWarriorsAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
@@ -53,7 +72,24 @@ void UWarriorsAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
 		return;
 	}
 
+	DynamicTransitionsState.bUpdatedThisFrame = false;
+
 	RefreshFeet(DeltaTime);
+	RefreshTransitions();
+}
+
+void UWarriorsAnimInstance::NativePostUpdateAnimation()
+{
+	if (!IsValid(Settings) || !IsValid(Character))
+	{
+		return;
+	}
+
+	PlayQueuedTransitionAnimation();
+	/*PlayQueuedTurnInPlaceAnimation();*/
+	StopQueuedTransitionAndTurnInPlaceAnimations();
+
+	bPendingUpdate = false;
 }
 
 FAnimInstanceProxy* UWarriorsAnimInstance::CreateAnimInstanceProxy()
@@ -100,10 +136,6 @@ void UWarriorsAnimInstance::RefreshStandingMovement()
 	float BlendWalk = Settings->StandingSettings.StrideBlendAmountWalkCurve->GetFloatValue(Speed);
 	StandingState.StrideBlendAmount = FMath::Lerp(BlendWalk, BlendRun, PoseState.GaitRunningAmount);
 	StandingState.WalkRunBlendAmount = Gait == WarriorsGaitTags::Walking ? 0.0f : 1.0f;
-	
-	UE_LOG(LogTemp, Warning, TEXT("StrideAmount = %f"), StandingState.StrideBlendAmount);
-	UE_LOG(LogTemp, Warning, TEXT("bMovingSmooth = %d"), CacheLocomotionState.bMovingSmooth);
-	UE_LOG(LogTemp, Warning, TEXT("HorizontalSpeed = %f"), CacheLocomotionState.HorizontalSpeed);
 }
 
 void UWarriorsAnimInstance::RefreshGroundedMovement()
@@ -183,7 +215,266 @@ void UWarriorsAnimInstance::RefreshGrounded()
 
 void UWarriorsAnimInstance::RefreshFeet(const float DeltaTime)
 {
+	FeetState.FootPlantedAmount = FMath::Clamp(GetCurveValue(UWarriorsConstants::FootPlantedCurveName()), -1.0f, 1.0f);
 	FeetState.FeetCrossingAmount = FMath::Clamp(GetCurveValue(UWarriorsConstants::FeetCrossingCurveName()), 0.0f, 1.0f);
+
+	//로컬 좌표계에서의 Transform 
+	const auto ComponentTransformInverse{GetProxyOnAnyThread<FAnimInstanceProxy>().GetComponentTransform().Inverse()};
+
+	RefreshFoot(FeetState.Left, UWarriorsConstants::FootLeftIkCurveName(), UWarriorsConstants::FootLeftLockCurveName(), ComponentTransformInverse, DeltaTime);
+	RefreshFoot(FeetState.Right, UWarriorsConstants::FootRightIkCurveName(), UWarriorsConstants::FootRightLockCurveName(), ComponentTransformInverse, DeltaTime);
+}
+
+void UWarriorsAnimInstance::RefreshFeetOnGameThread()
+{
+	check(IsInGameThread())
+
+	const auto* Mesh{ GetSkelMeshComponent() };
+
+	FeetState.PelvisRotation = FQuat4f{ Mesh->GetSocketTransform(UWarriorsConstants::PelvisBoneName(), RTS_Component).GetRotation() };
+
+	const auto FootLeftTargetTransform{
+		Mesh->GetSocketTransform(Settings->GeneralSettings.bUseFootIkBones
+									 ? UWarriorsConstants::FootLeftIkBoneName()
+									 : UWarriorsConstants::FootLeftVirtualBoneName())
+	};
+
+	FeetState.Left.TargetLocation = FootLeftTargetTransform.GetLocation();
+	FeetState.Left.TargetRotation = FootLeftTargetTransform.GetRotation();
+
+	const auto FootRightTargetTransform{
+		Mesh->GetSocketTransform(Settings->GeneralSettings.bUseFootIkBones
+									 ? UWarriorsConstants::FootRightIkBoneName()
+									 : UWarriorsConstants::FootRightVirtualBoneName())
+	};
+
+	FeetState.Right.TargetLocation = FootRightTargetTransform.GetLocation();
+	FeetState.Right.TargetRotation = FootRightTargetTransform.GetRotation();
+}
+
+void UWarriorsAnimInstance::RefreshFoot(FWarriorsFootState& FootState, const FName& IkCurveName, const FName& LockCurveName,const FTransform& ComponentTransformInverse, const float DeltaTime) const
+{
+	const auto IkAmount{ FMath::Clamp(GetCurveValue(IkCurveName), 0.0f, 1.0f) };
+	ProcessFootLockTeleport(IkAmount, FootState);
+	ProcessFootLockBaseChange(IkAmount, FootState, ComponentTransformInverse);
+	RefreshFootLock(IkAmount, FootState, LockCurveName, ComponentTransformInverse, DeltaTime);
+}
+
+void UWarriorsAnimInstance::ProcessFootLockTeleport(const float IkAmount, FWarriorsFootState& FootState) const
+{
+	// Due to network smoothing, we assume that teleportation occurs over a short period of time, not
+	// in one frame, since after accepting the teleportation event, the character can still be moved for
+	// some indefinite time, and this must be taken into account in order to avoid foot lock glitches.
+
+	if (bPendingUpdate || GetWorld()->TimeSince(TeleportedTime) > 0.2f || !FAnimWeight::IsRelevant(IkAmount * FootState.LockAmount))
+	{
+		return;
+	}
+
+	const auto& ComponentTransform{ GetProxyOnAnyThread<FAnimInstanceProxy>().GetComponentTransform() };
+
+	FootState.LockLocation = ComponentTransform.TransformPosition(FVector{ FootState.LockComponentRelativeLocation });
+	FootState.LockRotation = ComponentTransform.TransformRotation(FQuat{ FootState.LockComponentRelativeRotation });
+
+	/*if (MovementBase.bHasRelativeLocation)
+	{
+		const auto BaseRotationInverse{ MovementBase.Rotation.Inverse() };
+
+		FootState.LockMovementBaseRelativeLocation =
+			FVector3f{ BaseRotationInverse.RotateVector(FootState.LockLocation - MovementBase.Location) };
+
+		FootState.LockMovementBaseRelativeRotation = FQuat4f{ BaseRotationInverse * FootState.LockRotation };
+	}*/
+}
+
+void UWarriorsAnimInstance::ProcessFootLockBaseChange(const float IkAmount, FWarriorsFootState& FootState,
+	const FTransform& ComponentTransformInverse) const
+{
+	if ((!bPendingUpdate /*!MovementBase.bBaseChanged*/) || !FAnimWeight::IsRelevant(IkAmount * FootState.LockAmount))
+	{
+		return;
+	}
+
+	if (bPendingUpdate)
+	{
+		FootState.LockLocation = FootState.TargetLocation;
+		FootState.LockRotation = FootState.TargetRotation;
+	}
+
+	FootState.LockComponentRelativeLocation = FVector3f{ ComponentTransformInverse.TransformPosition(FootState.LockLocation) };
+	FootState.LockComponentRelativeRotation = FQuat4f{ ComponentTransformInverse.TransformRotation(FootState.LockRotation) };
+
+	/*if (MovementBase.bHasRelativeLocation)
+	{
+		const auto BaseRotationInverse{ MovementBase.Rotation.Inverse() };
+
+		FootState.LockMovementBaseRelativeLocation =
+			FVector3f{ BaseRotationInverse.RotateVector(FootState.LockLocation - MovementBase.Location) };
+
+		FootState.LockMovementBaseRelativeRotation = FQuat4f{ BaseRotationInverse * FootState.LockRotation };
+	}
+	else*/
+	{
+		FootState.LockMovementBaseRelativeLocation = FVector3f::ZeroVector;
+		FootState.LockMovementBaseRelativeRotation = FQuat4f::Identity;
+	}
+}
+
+void UWarriorsAnimInstance::RefreshFootLock(const float IkAmount, FWarriorsFootState& FootState, const FName& LockCurveName, const FTransform& ComponentTransformInverse, const float DeltaTime) const
+{
+	auto NewLockAmount{ FMath::Clamp(GetCurveValue(LockCurveName), 0, 1) };
+
+	if (CacheLocomotionState.bMovingSmooth/*LocomotionMode != AlsLocomotionModeTags::Grounded*/)
+	{
+		// Smoothly disable foot lock if the character is moving or in the air,
+		// instead of relying on the curve value from the animation blueprint.
+
+		static constexpr auto MovingDecreaseSpeed{ 5.0f };
+		static constexpr auto NotGroundedDecreaseSpeed{ 0.6f };
+
+		NewLockAmount = bPendingUpdate
+			? 0.0f
+			: FMath::Max(0.0f, FMath::Min(
+				NewLockAmount,
+				FootState.LockAmount - DeltaTime *
+				(CacheLocomotionState.bMovingSmooth ? MovingDecreaseSpeed : NotGroundedDecreaseSpeed)));
+	}
+
+	if (Settings->FeetSettings.bDisableFootLock || !FAnimWeight::IsRelevant(IkAmount * NewLockAmount))
+	{
+		if (FootState.LockAmount > 0.0f)
+		{
+			FootState.LockAmount = 0.0f;
+
+			FootState.LockLocation = FVector::ZeroVector;
+			FootState.LockRotation = FQuat::Identity;
+
+			FootState.LockComponentRelativeLocation = FVector3f::ZeroVector;
+			FootState.LockComponentRelativeRotation = FQuat4f::Identity;
+
+			FootState.LockMovementBaseRelativeLocation = FVector3f::ZeroVector;
+			FootState.LockMovementBaseRelativeRotation = FQuat4f::Identity;
+		}
+
+		FootState.FinalLocation = FVector3f{ ComponentTransformInverse.TransformPosition(FootState.TargetLocation) };
+		FootState.FinalRotation = FQuat4f{ ComponentTransformInverse.TransformRotation(FootState.TargetRotation) };
+		return;
+	}
+
+	const auto bNewAmountEqualOne{ FAnimWeight::IsFullWeight(NewLockAmount) };
+	const auto bNewAmountGreaterThanPrevious{ NewLockAmount > FootState.LockAmount };
+
+	// Update the foot lock amount only if the new amount is less than the current amount or equal to 1. This
+	// allows the foot to blend out from a locked location or lock to a new location, but never blend in.
+
+	if (bNewAmountEqualOne)
+	{
+		if (bNewAmountGreaterThanPrevious)
+		{
+			// If the new foot lock amount is 1 and the previous amount is less than 1, then save the new foot lock location and rotation.
+
+			if (FootState.LockAmount <= 0.9f)
+			{
+				// Keep the same lock location and rotation when the previous lock
+				// amount is close to 1 to get rid of the foot "teleportation" issue.
+
+				FootState.LockLocation = FootState.TargetLocation;
+				FootState.LockRotation = FootState.TargetRotation;
+
+				FootState.LockComponentRelativeLocation = FVector3f{ ComponentTransformInverse.TransformPosition(FootState.LockLocation) };
+				FootState.LockComponentRelativeRotation = FQuat4f{ ComponentTransformInverse.TransformRotation(FootState.LockRotation) };
+			}
+
+			/*if (MovementBase.bHasRelativeLocation)
+			{
+				const auto BaseRotationInverse{ MovementBase.Rotation.Inverse() };
+
+				FootState.LockMovementBaseRelativeLocation =
+					FVector3f{ BaseRotationInverse.RotateVector(FootState.TargetLocation - MovementBase.Location) };
+
+				FootState.LockMovementBaseRelativeRotation = FQuat4f{ BaseRotationInverse * FootState.TargetRotation };
+			}
+			else*/
+			{
+				FootState.LockMovementBaseRelativeLocation = FVector3f::ZeroVector;
+				FootState.LockMovementBaseRelativeRotation = FQuat4f::Identity;
+			}
+		}
+
+		FootState.LockAmount = 1.0f;
+	}
+	else if (!bNewAmountGreaterThanPrevious)
+	{
+		FootState.LockAmount = NewLockAmount;
+	}
+
+	/*if (MovementBase.bHasRelativeLocation)
+	{
+		FootState.LockLocation = MovementBase.Location +
+			MovementBase.Rotation.RotateVector(FVector{ FootState.LockMovementBaseRelativeLocation });
+
+		FootState.LockRotation = MovementBase.Rotation * FQuat{ FootState.LockMovementBaseRelativeRotation };
+	}*/
+
+	FootState.LockComponentRelativeLocation = FVector3f{ ComponentTransformInverse.TransformPosition(FootState.LockLocation) };
+	FootState.LockComponentRelativeRotation = FQuat4f{ ComponentTransformInverse.TransformRotation(FootState.LockRotation) };
+
+	// Limit the foot lock location so that legs do not twist into a spiral when the actor rotates quickly.
+
+	const auto ComponentRelativeThighAxis{ FeetState.PelvisRotation.RotateVector(FootState.ThighAxis) };
+	FVector2f From = FVector2f{ ComponentRelativeThighAxis };
+	FVector2f To = FVector2f{ FootState.LockComponentRelativeLocation };
+	const auto LockAngle = FMath::RadiansToDegrees(FMath::Acos(From | To)) * FMath::Sign(From ^ To);
+
+	if (FMath::Abs(LockAngle) > Settings->FeetSettings.FootLockAngleLimit + UE_KINDA_SMALL_NUMBER)
+	{
+		const auto ConstrainedLockAngle{ FMath::Clamp(LockAngle, -Settings->FeetSettings.FootLockAngleLimit, Settings->FeetSettings.FootLockAngleLimit) };
+		const FQuat4f OffsetRotation{ FVector3f::UpVector, FMath::DegreesToRadians(ConstrainedLockAngle - LockAngle) };
+
+		FootState.LockComponentRelativeLocation = OffsetRotation.RotateVector(FootState.LockComponentRelativeLocation);
+		FootState.LockComponentRelativeRotation = OffsetRotation * FootState.LockComponentRelativeRotation;
+		FootState.LockComponentRelativeRotation.Normalize();
+
+		const auto& ComponentTransform{ GetProxyOnAnyThread<FAnimInstanceProxy>().GetComponentTransform() };
+
+		FootState.LockLocation = ComponentTransform.TransformPosition(FVector{ FootState.LockComponentRelativeLocation });
+		FootState.LockRotation = ComponentTransform.TransformRotation(FQuat{ FootState.LockComponentRelativeRotation });
+
+		/*if (MovementBase.bHasRelativeLocation)
+		{
+			const auto BaseRotationInverse{ MovementBase.Rotation.Inverse() };
+
+			FootState.LockMovementBaseRelativeLocation =
+				FVector3f{ BaseRotationInverse.RotateVector(FootState.LockLocation - MovementBase.Location) };
+
+			FootState.LockMovementBaseRelativeRotation = FQuat4f{ BaseRotationInverse * FootState.LockRotation };
+		}*/
+	}
+
+	const auto FinalLocation{ FMath::Lerp(FootState.TargetLocation, FootState.LockLocation, FootState.LockAmount) };
+
+	auto FinalRotation{ FQuat::FastLerp(FootState.TargetRotation, FootState.LockRotation, FootState.LockAmount) };
+	FinalRotation.Normalize();
+
+	FootState.FinalLocation = FVector3f{ ComponentTransformInverse.TransformPosition(FinalLocation) };
+	FootState.FinalRotation = FQuat4f{ ComponentTransformInverse.TransformRotation(FinalRotation) };
+}
+
+void UWarriorsAnimInstance::StopQueuedTransitionAndTurnInPlaceAnimations()
+{
+	check(IsInGameThread());
+
+	if (!TransitionsState.bStopTransitionsQueued)
+	{
+		return;
+	}
+
+	StopSlotAnimation(TransitionsState.QueuedStopTransitionsBlendOutDuration, UWarriorsConstants::TransitionSlotName());
+	StopSlotAnimation(TransitionsState.QueuedStopTransitionsBlendOutDuration, UWarriorsConstants::TurnInPlaceStandingSlotName());
+	//StopSlotAnimation(TransitionsState.QueuedStopTransitionsBlendOutDuration, UWarriorsConstants::TurnInPlaceCrouchingSlotName());
+
+	TransitionsState.bStopTransitionsQueued = false;
+	TransitionsState.QueuedStopTransitionsBlendOutDuration = 0.0f;
 }
 
 void UWarriorsAnimInstance::RefreshPoseState()
@@ -201,6 +492,132 @@ void UWarriorsAnimInstance::RefreshPoseState()
 	PoseState.GaitWalkingAmount = FMath::Clamp(PoseState.GaitAmount, 0.0f, 1.0f);
 	PoseState.GaitRunningAmount = FMath::Clamp(PoseState.GaitAmount - 1.0f, 0.0f, 1.0f);
 	PoseState.GaitSprintingAmount = FMath::Clamp(PoseState.GaitAmount - 2.0f, 0.0f, 1.0f);
+}
+
+void UWarriorsAnimInstance::RefreshTransitions()
+{
+	TransitionsState.bTransitionsAllowed = FAnimWeight::IsFullWeight(GetCurveValue(UWarriorsConstants::AllowTransitionsCurveName()));
+}
+
+void UWarriorsAnimInstance::RefreshDynamicTransitions()
+{
+#if WITH_EDITOR
+	if (!IsValid(GetWorld()) || !GetWorld()->IsGameWorld())
+	{
+		return;
+	}
+#endif
+
+	if (DynamicTransitionsState.bUpdatedThisFrame || !IsValid(Settings))
+	{
+		return;
+	}
+
+	DynamicTransitionsState.bUpdatedThisFrame = true;
+
+	if (DynamicTransitionsState.FrameDelay > 0)
+	{
+		DynamicTransitionsState.FrameDelay -= 1;
+		return;
+	}
+
+	if (!TransitionsState.bTransitionsAllowed)
+	{
+		return;
+	}
+
+	// Check each foot to see if the location difference between the foot look and its desired / target location
+	// exceeds a threshold. If it does, play an additive transition animation on that foot. The currently set
+	// transition plays the second half of a 2 foot transition animation, so that only a single foot moves.
+
+	const auto FootLockDistanceThresholdSquared{
+		FMath::Square(Settings->DynamicTransitions.FootLockDistanceThreshold * CacheLocomotionState.HorizontalScale)
+	};
+
+	const auto FootLockLeftDistanceSquared{ FVector::DistSquared(FeetState.Left.TargetLocation, FeetState.Left.LockLocation) };
+	const auto FootLockRightDistanceSquared{ FVector::DistSquared(FeetState.Right.TargetLocation, FeetState.Right.LockLocation) };
+
+	const auto bTransitionLeftAllowed{
+		FAnimWeight::IsRelevant(FeetState.Left.LockAmount) && FootLockLeftDistanceSquared > FootLockDistanceThresholdSquared
+	};
+
+	const auto bTransitionRightAllowed{
+		FAnimWeight::IsRelevant(FeetState.Right.LockAmount) && FootLockRightDistanceSquared > FootLockDistanceThresholdSquared
+	};
+
+	if (!bTransitionLeftAllowed && !bTransitionRightAllowed)
+	{
+		return;
+	}
+
+	TObjectPtr<UAnimSequenceBase> DynamicTransitionSequence;
+
+	// If both transitions are allowed, choose the one with a greater lock distance.
+
+	if (!bTransitionLeftAllowed)
+	{
+		DynamicTransitionSequence = Stance == WarriorsStanceTags::Crouching
+			? Settings->DynamicTransitions.CrouchingRightSequence
+			: Settings->DynamicTransitions.StandingRightSequence;
+	}
+	else if (!bTransitionRightAllowed)
+	{
+		DynamicTransitionSequence = Stance == WarriorsStanceTags::Crouching
+			? Settings->DynamicTransitions.CrouchingLeftSequence
+			: Settings->DynamicTransitions.StandingLeftSequence;
+	}
+	else if (FootLockLeftDistanceSquared >= FootLockRightDistanceSquared)
+	{
+		DynamicTransitionSequence = Stance == WarriorsStanceTags::Crouching
+			? Settings->DynamicTransitions.CrouchingLeftSequence
+			: Settings->DynamicTransitions.StandingLeftSequence;
+	}
+	else
+	{
+		DynamicTransitionSequence = Stance == WarriorsStanceTags::Crouching
+			? Settings->DynamicTransitions.CrouchingRightSequence
+			: Settings->DynamicTransitions.StandingRightSequence;
+	}
+
+	if (IsValid(DynamicTransitionSequence))
+	{
+		// Block next dynamic transitions for about 2 frames to give the animation blueprint some time to properly react to the animation.
+
+		DynamicTransitionsState.FrameDelay = 2;
+
+		// Animation montages can't be played in the worker thread, so queue them up to play later in the game thread.
+
+		TransitionsState.QueuedTransitionSequence = DynamicTransitionSequence;
+		TransitionsState.QueuedTransitionBlendInDuration = Settings->DynamicTransitions.BlendDuration;
+		TransitionsState.QueuedTransitionBlendOutDuration = Settings->DynamicTransitions.BlendDuration;
+		TransitionsState.QueuedTransitionPlayRate = Settings->DynamicTransitions.PlayRate;
+		TransitionsState.QueuedTransitionStartTime = 0.0f;
+
+		if (IsInGameThread())
+		{
+			PlayQueuedTransitionAnimation();
+		}
+	}
+}
+
+void UWarriorsAnimInstance::PlayQueuedTransitionAnimation()
+{
+	check(IsInGameThread());
+
+	if (TransitionsState.bStopTransitionsQueued || !IsValid(TransitionsState.QueuedTransitionSequence))
+	{
+		return;
+	}
+
+	PlaySlotAnimationAsDynamicMontage(TransitionsState.QueuedTransitionSequence, UWarriorsConstants::TransitionSlotName(),
+		TransitionsState.QueuedTransitionBlendInDuration, TransitionsState.QueuedTransitionBlendOutDuration,
+		TransitionsState.QueuedTransitionPlayRate, 1, 0.0f, TransitionsState.QueuedTransitionStartTime);
+
+	TransitionsState.QueuedTransitionSequence = nullptr;
+	TransitionsState.QueuedTransitionBlendInDuration = 0.0f;
+	TransitionsState.QueuedTransitionBlendOutDuration = 0.0f;
+	TransitionsState.QueuedTransitionPlayRate = 1.0f;
+	TransitionsState.QueuedTransitionStartTime = 0.0f;
 }
 
 void UWarriorsAnimInstance::RefreshVelocityBlend()
@@ -234,11 +651,70 @@ void UWarriorsAnimInstance::RefreshVelocityBlend()
 		VelocityBlend.LeftAmount = FMath::FInterpTo(VelocityBlend.LeftAmount, FMath::Abs(FMath::Clamp(TargetVelocityBlend.Y, -1.0f, 0.0f)), DeltaSeconds, InterpSpeed);
 		VelocityBlend.RightAmount = FMath::FInterpTo(VelocityBlend.RightAmount, FMath::Clamp(TargetVelocityBlend.Y, 0.0f, 1.0f), DeltaSeconds, InterpSpeed);
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("VelocityBelnd.BackAmount : %f"), VelocityBlend.BackAmount);
 }
 
 FVector3f UWarriorsAnimInstance::GetRelativeVelocity() const
 {
 	return FVector3f{CacheLocomotionState.Quat.UnrotateVector(CacheLocomotionState.Velocity)};
+}
+
+void UWarriorsAnimInstance::PlayTransitionAnimation(UAnimSequenceBase* Sequence, const float BlendInDuration, const float BlendOutDuration,
+	const float PlayRate, const float StartTime, const bool bFromStandingIdleOnly)
+{
+	if (bFromStandingIdleOnly && (CacheLocomotionState.bMoving || Stance != WarriorsStanceTags::Standing))
+	{
+		return;
+	}
+
+	// Animation montages can't be played in the worker thread, so queue them up to play later in the game thread.
+
+	TransitionsState.QueuedTransitionSequence = Sequence;
+	TransitionsState.QueuedTransitionBlendInDuration = BlendInDuration;
+	TransitionsState.QueuedTransitionBlendOutDuration = BlendOutDuration;
+	TransitionsState.QueuedTransitionPlayRate = PlayRate;
+	TransitionsState.QueuedTransitionStartTime = StartTime;
+
+	if (IsInGameThread())
+	{
+		PlayQueuedTransitionAnimation();
+	}
+}
+
+void UWarriorsAnimInstance::PlayTransitionLeftAnimation(const float BlendInDuration, const float BlendOutDuration, const float PlayRate,
+	const float StartTime, const bool bFromStandingIdleOnly)
+{
+	if (!IsValid(Settings))
+	{
+		return;
+	}
+
+	PlayTransitionAnimation(Stance == WarriorsStanceTags::Crouching
+		? Settings->TransitionsSettings.CrouchingLeftSequence
+		: Settings->TransitionsSettings.StandingLeftSequence,
+		BlendInDuration, BlendOutDuration, PlayRate, StartTime, bFromStandingIdleOnly);
+}
+
+void UWarriorsAnimInstance::PlayTransitionRightAnimation(const float BlendInDuration, const float BlendOutDuration, const float PlayRate,
+	const float StartTime, const bool bFromStandingIdleOnly)
+{
+	if (!IsValid(Settings))
+	{
+		return;
+	}
+
+	PlayTransitionAnimation(Stance == WarriorsStanceTags::Crouching
+		? Settings->TransitionsSettings.CrouchingRightSequence
+		: Settings->TransitionsSettings.StandingRightSequence,
+		BlendInDuration, BlendOutDuration, PlayRate, StartTime, bFromStandingIdleOnly);
+}
+
+void UWarriorsAnimInstance::StopTransitionAndTurnInPlaceAnimations(const float BlendOutDuration)
+{
+	TransitionsState.bStopTransitionsQueued = true;
+	TransitionsState.QueuedStopTransitionsBlendOutDuration = BlendOutDuration;
+
+	if (IsInGameThread())
+	{
+		StopQueuedTransitionAndTurnInPlaceAnimations();
+	}
 }
