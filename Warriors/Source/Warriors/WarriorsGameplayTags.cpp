@@ -17,3 +17,9 @@ namespace WarriorsStanceTags
 	UE_DEFINE_GAMEPLAY_TAG(Standing, FName{ TEXTVIEW("Warriors.Stance.Standing") });
 	UE_DEFINE_GAMEPLAY_TAG(Crouching, FName{ TEXTVIEW("Warriros.Stance.Crouching") });
 }
+
+namespace WarriorsLocomotionModeTags
+{
+	UE_DEFINE_GAMEPLAY_TAG(Grounded, FName{ TEXTVIEW("Als.LocomotionMode.Grounded") });
+	UE_DEFINE_GAMEPLAY_TAG(InAir, FName{ TEXTVIEW("Als.LocomotionMode.InAir") });
+}

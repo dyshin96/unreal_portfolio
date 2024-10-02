@@ -74,6 +74,7 @@ void UWarriorsAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
 
 	DynamicTransitionsState.bUpdatedThisFrame = false;
 
+	RefreshPoseState();
 	RefreshFeet(DeltaTime);
 	RefreshTransitions();
 }
@@ -136,6 +137,19 @@ void UWarriorsAnimInstance::RefreshStandingMovement()
 	float BlendWalk = Settings->StandingSettings.StrideBlendAmountWalkCurve->GetFloatValue(Speed);
 	StandingState.StrideBlendAmount = FMath::Lerp(BlendWalk, BlendRun, PoseState.GaitRunningAmount);
 	StandingState.WalkRunBlendAmount = Gait == WarriorsGaitTags::Walking ? 0.0f : 1.0f;
+
+	const auto WalkRunSpeedAmount{
+	FMath::Lerp(Speed / Settings->StandingSettings.AnimatedWalkSpeed,
+				Speed / Settings->StandingSettings.AnimatedRunSpeed,
+				PoseState.UnweightedGaitRunningAmount)
+	};
+
+	const auto WalkRunSprintSpeedAmount{
+		FMath::Lerp(WalkRunSpeedAmount,
+					Speed / Settings->StandingSettings.AnimatedSprintSpeed,
+					PoseState.UnweightedGaitSprintingAmount)
+	};
+	StandingState.PlayRate = FMath::Clamp(WalkRunSprintSpeedAmount / StandingState.StrideBlendAmount, UE_KINDA_SMALL_NUMBER, 3.0f);
 }
 
 void UWarriorsAnimInstance::RefreshGroundedMovement()
@@ -488,10 +502,18 @@ void UWarriorsAnimInstance::RefreshPoseState()
 	};
 
 	PoseState.GaitAmount = FMath::Clamp(GetCurveValue(Curves, UWarriorsConstants::PoseGaitCurveName()), 0.0f, 3.0f);
-	//PoseState.GroundedAmount = FMath::Clamp(GetCurveValue(Curves, UWarriorsConstants::PoseGroundedCurveName()), 0.0f, 1.0f);
+	PoseState.GroundedAmount = FMath::Clamp(GetCurveValue(Curves, UWarriorsConstants::PoseGroundedCurveName()), 0.0f, 1.0f);
 	PoseState.GaitWalkingAmount = FMath::Clamp(PoseState.GaitAmount, 0.0f, 1.0f);
 	PoseState.GaitRunningAmount = FMath::Clamp(PoseState.GaitAmount - 1.0f, 0.0f, 1.0f);
 	PoseState.GaitSprintingAmount = FMath::Clamp(PoseState.GaitAmount - 2.0f, 0.0f, 1.0f);
+
+	PoseState.UnweightedGaitAmount = PoseState.GroundedAmount > UE_SMALL_NUMBER
+		? PoseState.GaitAmount / PoseState.GroundedAmount
+		: PoseState.GaitAmount;
+
+	PoseState.UnweightedGaitWalkingAmount = FMath::Clamp(PoseState.UnweightedGaitAmount, 0.0f, 1.0f);
+	PoseState.UnweightedGaitRunningAmount = FMath::Clamp(PoseState.UnweightedGaitAmount - 1.0f, 0.0f, 1.0f);
+	PoseState.UnweightedGaitSprintingAmount = FMath::Clamp(PoseState.UnweightedGaitAmount - 2.0f, 0.0f, 1.0f);
 }
 
 void UWarriorsAnimInstance::RefreshTransitions()

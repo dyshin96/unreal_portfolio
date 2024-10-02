@@ -19,3 +19,9 @@ namespace WarriorsStanceTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Standing);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Crouching);
 }
+
+namespace WarriorsLocomotionModeTags
+{
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Grounded);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InAir);
+}

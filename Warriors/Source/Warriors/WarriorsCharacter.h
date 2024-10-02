@@ -75,10 +75,16 @@ private:
 	FWarriorsLocomotionState LocomotionState;
 
 	UPROPERTY(VisibleAnywhere, Category = "State|Warriors Character", Transient)
-	FGameplayTag Gait{ WarriorsGaitTags::Walking };
+	FGameplayTag Gait {WarriorsGaitTags::Walking};
+
+	UPROPERTY(VisibleAnywhere, Category = "State|Warriors LocomotionMode", Transient)
+	FGameplayTag LocomotionMode {WarriorsLocomotionModeTags::Grounded};
 
 	UPROPERTY(EditAnyWhere, Category = "Setting|Warriors Character", Transient)
 	TObjectPtr<UWarriorsMovementSettings> WarriorsMovementSettings;
+
+	UPROPERTY(EditAnywhere, Category = "Setting|Wariors Character", Transient)
+	TObjectPtr<UWarriorsCharacterSettings> Settings;
 
 	FVector_NetQuantizeNormal InputDirection{ForceInit};
 #pragma endregion 
@@ -92,6 +98,7 @@ private:
 	void RefreshInput(const float DeltaTime);
 	void RefreshLocomotionLocationAndRotation();
 	void RefreshLocomotion();
+	void RefreshGroundedRotation();
 	void InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent);
 	void RefreshGait();
 	void SetGait(const FGameplayTag& NewGait);
@@ -116,7 +123,7 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
-	virtual void Tick(float DeltaSeconds) override;
+	virtual void Tick(float DeltaTime) override;
 public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }

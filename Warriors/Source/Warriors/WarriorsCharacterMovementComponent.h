@@ -24,7 +24,7 @@ private:
 	FGameplayTag CurrentRotationMode;
 
 	UPROPERTY(VisibleAnywhere, Category = "State", Transient, Meta = (ClampMin = 0, ClampMax = 3))
-	float GaitAmouont = 0.0f;
+	float GaitAmount = 0.0f;
 
 
 	UPROPERTY(VisibleAnywhere, Category = "State")

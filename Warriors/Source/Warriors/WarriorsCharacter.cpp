@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "WarriorsCharacter.h"
+#include "WarriorsCharacterSettings.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -72,9 +73,10 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	InitSubMeshs(HelmetMesh);
 }
 
-void AWarriorsCharacter::Tick(float DeltaSeconds)
+void AWarriorsCharacter::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaSeconds);
+	Super::Tick(DeltaTime);
+	RefreshInput(DeltaTime);
 	RefreshLocomotionLocationAndRotation();
 	RefreshLocomotion();
 	RefreshGait();
@@ -99,7 +101,6 @@ void AWarriorsCharacter::RefreshInput(const float DeltaTime)
 	{
 		LocomotionState.InputYawAngle = UE_REAL_TO_FLOAT(FMath::RadiansToDegrees(FMath::Atan2(InputDirection.Y, InputDirection.X)));
 	}
-
 }
 
 void AWarriorsCharacter::RefreshLocomotionLocationAndRotation()
@@ -132,7 +133,21 @@ void AWarriorsCharacter::RefreshLocomotion()
 	{
 		LocomotionState.VelocityYawAngle = UE_REAL_TO_FLOAT(FMath::RadiansToDegrees(FMath::Atan2(LocomotionState.Velocity.Y, LocomotionState.Velocity.X)));
 	}
+
+	
+	LocomotionState.bMoving = (LocomotionState.bHasInput && LocomotionState.bHasVelocity) || LocomotionState.Speed > Settings.
 }	
+
+void AWarriorsCharacter::RefreshGroundedRotation()
+{
+	if (LocomotionMode != WarriorsLocomotionModeTags::Grounded)
+	{
+		return;
+	}
+
+	float TaragetYawAngle = LocomotionState.VelocityYawAngle;
+
+}
 
 void AWarriorsCharacter::InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent)
 {
@@ -213,6 +228,12 @@ void AWarriorsCharacter::BeginPlay()
 	HairMesh->SetSkeletalMesh(HairMeshPtr.LoadSynchronous());
 
 	WarriorsCharacterMovementComponent = Cast<UWarriorsCharacterMovementComponent>(GetCharacterMovement());
+
+	if (ensure(Settings.IsValid()))
+	{
+	    Settings = NewObject<UWarriorsCharacterSettings>(this);
+	}
+
 }
 //////////////////////////////////////////////////////////////////////////
 // Input

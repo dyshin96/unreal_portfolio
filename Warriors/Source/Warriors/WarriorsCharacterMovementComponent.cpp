@@ -7,6 +7,8 @@
 UWarriorsCharacterMovementComponent::UWarriorsCharacterMovementComponent()
 {
 	CurrentRotationMode = WarriorsRotationModeTags::ViewDirection;
+	GroundFriction = 4.0f;
+	MaxWalkSpeed = 375.0f;
 }
 
 void UWarriorsCharacterMovementComponent::BeginPlay()
@@ -73,11 +75,11 @@ void UWarriorsCharacterMovementComponent::RefreshGroundedMovementSettings()
 	
 	if (Speed > WalkSpeed)
 	{
-		GaitAmouont = FMath::GetMappedRangeValueClamped(FVector2f{WalkSpeed, RunSpeed}, {1.0f, 2.0f}, Speed);
+		GaitAmount = FMath::GetMappedRangeValueClamped(FVector2f{WalkSpeed, RunSpeed}, {1.0f, 2.0f}, Speed);
 	}
 	else
 	{
-		GaitAmouont = FMath::GetMappedRangeValueClamped(FVector2f{0.0f, WalkSpeed}, {0.0f, 1.0f}, Speed);
+		GaitAmount = FMath::GetMappedRangeValueClamped(FVector2f{0.0f, WalkSpeed}, {0.0f, 1.0f}, Speed);
 	}
 
 	if (MaxAllowedGait == WarriorsGaitTags::Walking)
@@ -93,9 +95,9 @@ void UWarriorsCharacterMovementComponent::RefreshGroundedMovementSettings()
 	{
 		const auto& AccelerationAndDecelerationAndGroundFrictionCurves{ GaitSettings.AccelerationAndDecelerationAndGroundFrictionCurve->FloatCurves };
 
-		MaxAccelerationWalking = AccelerationAndDecelerationAndGroundFrictionCurves[0].Eval(GaitAmouont);
-		GroundFriction = AccelerationAndDecelerationAndGroundFrictionCurves[1].Eval(GaitAmouont);
-		BrakingDecelerationWalking = AccelerationAndDecelerationAndGroundFrictionCurves[2].Eval(GaitAmouont); 
+		MaxAccelerationWalking = AccelerationAndDecelerationAndGroundFrictionCurves[0].Eval(GaitAmount);
+		GroundFriction = AccelerationAndDecelerationAndGroundFrictionCurves[1].Eval(GaitAmount);
+		BrakingDecelerationWalking = AccelerationAndDecelerationAndGroundFrictionCurves[2].Eval(GaitAmount); 
 	}
 }
 
