@@ -7,6 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "WarriorsMovementSettings.h"
 #include "WarriorsCharacterMovementComponent.h"
+#include "WarriorsConstants.h"
 #include "WarriorsGamePlayTags.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -73,11 +74,20 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	InitSubMeshs(HelmetMesh);
 }
 
+void AWarriorsCharacter::PostRegisterAllComponents()
+{
+	Super::PostRegisterAllComponents();
+
+	ViewState.Rotation = GetViewRotation();
+	ViewState.PreviousYawAngle = ViewState.Rotation.Yaw;
+}
+
 void AWarriorsCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	RefreshInput(DeltaTime);
-	RefreshLocomotionLocationAndRotation();
+	RefreshViewState(DeltaTime);
+	RefreshLocomotionLocationAndRotation(DeltaTime);
 	RefreshLocomotion();
 	RefreshGait();
 }
@@ -86,6 +96,23 @@ void AWarriorsCharacter::SetInputDirection(FVector NewInputDirection)
 {
 	NewInputDirection = NewInputDirection.GetSafeNormal();
 	InputDirection = NewInputDirection;
+}
+
+void AWarriorsCharacter::SetTargetYawAngle(const float TargetYawAngle)
+{
+	LocomotionState.TargetYawAngle = FMath::UnwindDegrees(TargetYawAngle);
+	LocomotionState.SmoothTargetYawAngle = LocomotionState.TargetYawAngle;
+}
+
+void AWarriorsCharacter::RefreshViewState(const float DeltaTime)
+{
+	ViewState.PreviousYawAngle = ViewState.Rotation.Yaw;
+	ViewState.Rotation = GetViewRotation();
+
+	if (DeltaTime > UE_SMALL_NUMBER)
+	{
+		ViewState.YawSpeed = FMath::Abs(UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - ViewState.PreviousYawAngle)) / DeltaTime;
+	}
 }
 
 void AWarriorsCharacter::RefreshInput(const float DeltaTime)
@@ -103,7 +130,7 @@ void AWarriorsCharacter::RefreshInput(const float DeltaTime)
 	}
 }
 
-void AWarriorsCharacter::RefreshLocomotionLocationAndRotation()
+void AWarriorsCharacter::RefreshLocomotionLocationAndRotation(const float DeltaTime)
 {
 	const auto& ActorTransform{ GetActorTransform() };
 
@@ -133,20 +160,125 @@ void AWarriorsCharacter::RefreshLocomotion()
 	{
 		LocomotionState.VelocityYawAngle = UE_REAL_TO_FLOAT(FMath::RadiansToDegrees(FMath::Atan2(LocomotionState.Velocity.Y, LocomotionState.Velocity.X)));
 	}
-
 	
-	LocomotionState.bMoving = (LocomotionState.bHasInput && LocomotionState.bHasVelocity) || LocomotionState.Speed > Settings.
+	LocomotionState.bMoving = (LocomotionState.bHasInput && LocomotionState.bHasVelocity) || LocomotionState.HorizontalSpeed > Settings->MovingSpeedThreshold;
 }	
 
-void AWarriorsCharacter::RefreshGroundedRotation()
+void AWarriorsCharacter::RefreshGroundedRotation(const float DeltaTime)
 {
 	if (LocomotionMode != WarriorsLocomotionModeTags::Grounded)
 	{
 		return;
 	}
 
-	float TaragetYawAngle = LocomotionState.VelocityYawAngle;
+	if (HasAnyRootMotion())
+	{
+		RefreshTargetYawAngleUsingLocomotionRotation();
+		return;
+	}
+	
+	//Not moving
+	if (!LocomotionState.bMoving)
+	{
+		ApplyRotationYawSpeedAnimationCurve(DeltaTime);
+		RefreshTargetYawAngleUsingLocomotionRotation();
+		return;
+	}
+	
+	//moving
 
+	float TargetYawAngle{ UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw) };
+	if (Gait == WarriorsGaitTags::Sprinting)
+	{
+		//Todo
+		TargetYawAngle = LocomotionState.VelocityYawAngle;
+	}
+	else
+	{
+		TargetYawAngle = UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw + GetMesh()->GetAnimInstance()->GetCurveValue(UWarriorsConstants::RotationYawOffsetCurveName()));
+	}
+
+	const float RotationInterpolationSpeed{ CalculateGroundedMovingRotationInterpolationSpeed() };
+	static constexpr float TargetYawAngleRotationSpeed{ 500.0f };
+
+	SetRotationExtraSmooth(TargetYawAngle, DeltaTime, RotationInterpolationSpeed, TargetYawAngleRotationSpeed);
+}
+
+void AWarriorsCharacter::SetRotationExtraSmooth(const float TargetYawAngle, const float DeltaTime, 
+	const float InterpolationSpeed, const float TargetYawAngleRotationSpeed) 
+{
+	SetTargetYawAngleSmooth(TargetYawAngle, DeltaTime, TargetYawAngleRotationSpeed);
+
+	FRotator NewRotation{ GetActorRotation() };
+	
+	if (InterpolationSpeed > 0.0f)
+	{
+		float Delta = LocomotionState.SmoothTargetYawAngle - FMath::UnwindDegrees(NewRotation.Yaw);
+		float ThresholdValue = 5.0f;
+		float Ratio = 1.0f - FMath::InvExpApprox(InterpolationSpeed * DeltaTime);
+		if (Delta > 180.0f - ThresholdValue)
+		{
+			Delta = Delta - 360.0f;
+		}
+		NewRotation.Yaw = FMath::UnwindDegrees(NewRotation.Yaw + Delta * Ratio);
+	}
+	else
+	{
+		NewRotation.Yaw = LocomotionState.TargetYawAngle;
+	}
+
+	SetActorRotation(NewRotation);
+	RefreshLocomotionLocationAndRotation(DeltaTime);
+}
+
+void AWarriorsCharacter::SetTargetYawAngleSmooth(const float TargetYawAngle, const float DeltaTime, const float RotationSpeed)
+{
+	LocomotionState.TargetYawAngle = FMath::UnwindDegrees(TargetYawAngle);
+
+	//SmoothTargetYawAngle이 왜 있는지 모르겠음??
+	LocomotionState.SmoothTargetYawAngle = TargetYawAngle;
+
+	if (RotationSpeed <= 0.0f || FMath::IsNearlyEqual(LocomotionState.SmoothTargetYawAngle, TargetYawAngle))
+	{
+		LocomotionState.SmoothTargetYawAngle = TargetYawAngle;
+	}
+}
+
+float AWarriorsCharacter::CalculateGroundedMovingRotationInterpolationSpeed() const
+{
+	const FWarriorsMovementGaitSettings& GaitSettings{ WarriorsCharacterMovementComponent->GetGaitSettings() };
+	TObjectPtr<UCurveFloat> InterpolationCurve = GaitSettings.RotationInterpolationSpeedCurve.Get();
+	
+	static constexpr float DefaultInterpolationSpeed{ 5.0f };
+
+	//회전속도를 GaitAmount를 통해 티테일 하게 주고 싶을때 사용 
+	const float InterpolationSpeed{ IsValid(InterpolationCurve) ?
+		InterpolationCurve->GetFloatValue(WarriorsCharacterMovementComponent->GetGaitAmount()) : DefaultInterpolationSpeed };
+
+	static constexpr auto MaxInterpolationSpeedMultiplier{ 3.0f };
+	static constexpr auto ReferenceViewYawSpeed{ 300.0f };
+
+	//카메라의 회전속도를 보간 속도 공식에 포함시켜 카메라가 빨리 회전할수록 캐릭터도 빨리 회전하게하여 자연스러움을 높입니다. 
+	return InterpolationSpeed * (1.0f + (MaxInterpolationSpeedMultiplier - 1.0f) * FMath::Clamp(ViewState.YawSpeed / ReferenceViewYawSpeed, 0.0f, 1.0f));
+}
+
+void AWarriorsCharacter::RefreshTargetYawAngleUsingLocomotionRotation()
+{
+	SetTargetYawAngle(UE_REAL_TO_FLOAT(LocomotionState.Rotation.Yaw));
+}
+
+void AWarriorsCharacter::ApplyRotationYawSpeedAnimationCurve(float DeltaTime)
+{
+	const auto DeltaYawAngle{ GetMesh()->GetAnimInstance()->GetCurveValue(UWarriorsConstants::RotationYawSpeedCurveName()) * DeltaTime };
+	if (FMath::Abs(DeltaYawAngle) > UE_SMALL_NUMBER)
+	{
+		FRotator NewRotation{ GetActorRotation() };
+		NewRotation.Yaw += DeltaYawAngle;
+		SetActorRotation(NewRotation);
+
+		RefreshLocomotionLocationAndRotation(DeltaTime);
+		RefreshTargetYawAngleUsingLocomotionRotation();
+	}
 }
 
 void AWarriorsCharacter::InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent)
@@ -229,11 +361,10 @@ void AWarriorsCharacter::BeginPlay()
 
 	WarriorsCharacterMovementComponent = Cast<UWarriorsCharacterMovementComponent>(GetCharacterMovement());
 
-	if (ensure(Settings.IsValid()))
+	if (ensure(IsValid(Settings.Get())))
 	{
 	    Settings = NewObject<UWarriorsCharacterSettings>(this);
 	}
-
 }
 //////////////////////////////////////////////////////////////////////////
 // Input

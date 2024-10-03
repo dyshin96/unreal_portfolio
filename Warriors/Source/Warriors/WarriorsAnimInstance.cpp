@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Gmes, Inc. All Rights Reserved.
 
 #include "WarriorsAniminstance.h"
 #include "WarriorsConstants.h"
@@ -59,6 +59,7 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	}
 
 	Gait = Character->GetGait();
+	RefreshViewOnGameThread();
 	RefreshLocomotionOnGameThread();
 	RefreshFeetOnGameThread();
 }
@@ -75,6 +76,7 @@ void UWarriorsAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
 	DynamicTransitionsState.bUpdatedThisFrame = false;
 
 	RefreshPoseState();
+	RefreshView();
 	RefreshFeet(DeltaTime);
 	RefreshTransitions();
 }
@@ -521,6 +523,23 @@ void UWarriorsAnimInstance::RefreshTransitions()
 	TransitionsState.bTransitionsAllowed = FAnimWeight::IsFullWeight(GetCurveValue(UWarriorsConstants::AllowTransitionsCurveName()));
 }
 
+void UWarriorsAnimInstance::RefreshView()
+{
+	ViewState.YawAngle = FMath::UnwindDegrees(UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - CacheLocomotionState.Rotation.Yaw));
+	ViewState.PitchAngle = FMath::UnwindDegrees(UE_REAL_TO_FLOAT(ViewState.Rotation.Pitch - CacheLocomotionState.Rotation.Pitch));
+
+	ViewState.PitchAmount = 0.5f - ViewState.PitchAngle / 180.0f;
+}
+
+void UWarriorsAnimInstance::RefreshViewOnGameThread()
+{
+	check(IsInGameThread());
+
+	const FWarriorsViewState View = Character->GetViewState();
+	ViewState.Rotation = View.Rotation;
+	ViewState.YawSpeed = View.YawSpeed;
+}
+
 void UWarriorsAnimInstance::RefreshDynamicTransitions()
 {
 #if WITH_EDITOR
@@ -620,6 +639,58 @@ void UWarriorsAnimInstance::RefreshDynamicTransitions()
 			PlayQueuedTransitionAnimation();
 		}
 	}
+}
+
+void UWarriorsAnimInstance::RefreshRotateInPlace()
+{
+#if WITH_EDITOR
+	if (!IsValid(GetWorld()) || !GetWorld()->IsGameWorld())
+	{
+		return;
+	}
+#endif
+
+	if (RotateInPlaceState.bUpdatedThisFrame || !IsValid(Settings))
+	{
+		return;
+	}
+
+	RotateInPlaceState.bUpdatedThisFrame = true;
+
+	if (CacheLocomotionState.bMoving /* || !IsAllowedRotateInPlace*/)
+	{
+		RotateInPlaceState.bRotatingLeft = false;
+		RotateInPlaceState.bRotatingRight = false;
+	}
+	else
+	{
+		RotateInPlaceState.bRotatingLeft = ViewState.YawAngle < -Settings->RotateInPlaceSettings.ViewYawAngleThreshold;
+		RotateInPlaceState.bRotatingRight = ViewState.YawAngle > Settings->RotateInPlaceSettings.ViewYawAngleThreshold;
+	}
+
+	static constexpr auto PlayRateInterpolationSpeed{ 5.0f };
+
+	if (!RotateInPlaceState.bRotatingLeft && !RotateInPlaceState.bRotatingRight)
+	{
+		RotateInPlaceState.PlayRate = bPendingUpdate
+			? Settings->RotateInPlaceSettings.PlayRate.X
+			: FMath::FInterpTo(RotateInPlaceState.PlayRate, Settings->RotateInPlaceSettings.PlayRate.X,
+				GetDeltaSeconds(), PlayRateInterpolationSpeed);
+		return;
+	}
+
+	// If the character should rotate, set the play rate to scale with the view yaw
+	// speed. This makes the character rotate faster when moving the camera faster.
+
+	const auto PlayRate{
+		FMath::GetMappedRangeValueClamped(Settings->RotateInPlaceSettings.ReferenceViewYawSpeed,
+										  Settings->RotateInPlaceSettings.PlayRate, ViewState.YawSpeed)
+	};
+
+	RotateInPlaceState.PlayRate = bPendingUpdate
+		? PlayRate
+		: FMath::FInterpTo(RotateInPlaceState.PlayRate, PlayRate,
+			GetDeltaSeconds(), PlayRateInterpolationSpeed);
 }
 
 void UWarriorsAnimInstance::PlayQueuedTransitionAnimation()

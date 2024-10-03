@@ -53,6 +53,6 @@ public:
 	bool IsHorizontalMoving();
 	float GetTurnCameraHalfNormalizedValue(float DeltaTime);
 	float GetTurnCameraRotateRate();
-
+	float GetGaitAmount();
 	FWarriorsMovementGaitSettings& GetGaitSettings();
 };

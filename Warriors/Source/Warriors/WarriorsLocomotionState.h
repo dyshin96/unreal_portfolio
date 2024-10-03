@@ -32,7 +32,11 @@ struct FWarriorsLocomotionState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	FQuat Quat{ForceInit};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
-	float HorizontalScale{1.0f};
+	float HorizontalScale {1.0f};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	uint8 bMovingSmooth : 1{false};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	float TargetYawAngle{0.0f};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	float SmoothTargetYawAngle{ 0.0f };
 };

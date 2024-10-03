@@ -8,6 +8,7 @@
 #include "WarriorsDynamicTransitionsSettings.h"
 #include "WarriorsFeetSettings.h"
 #include "WarriorsTransitionsSettings.h"
+#include "WarriorsRotateInPlaceSettings.h"
 #include "WarriorsAnimationInstanceSettings.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
@@ -28,4 +29,6 @@ public:
 	FWarriorsFeetSettings FeetSettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FWarriorsTransitionsSettings TransitionsSettings;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FWarriorsRotateInPlaceSettings RotateInPlaceSettings;
 };

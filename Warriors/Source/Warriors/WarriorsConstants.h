@@ -50,6 +50,10 @@ public:
 	static const FName& FootLeftVirtualBoneName();
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& FootRightVirtualBoneName();
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& RotationYawSpeedCurveName();
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName & RotationYawOffsetCurveName();
 };
 
 
@@ -152,5 +156,17 @@ inline const FName& UWarriorsConstants::FootLeftVirtualBoneName()
 inline const FName& UWarriorsConstants::FootRightVirtualBoneName()
 {
 	static const FName Name{ TEXTVIEW("VB foot_r") };
+	return Name;
+}
+
+inline const FName& UWarriorsConstants::RotationYawSpeedCurveName()
+{
+	static const FName Name{ TEXTVIEW("RotationYawSpeed") };
+	return Name;
+}
+
+inline const FName& UWarriorsConstants::RotationYawOffsetCurveName()
+{
+	static const FName Name{ TEXTVIEW("RotationYawSpeed") };
 	return Name;
 }

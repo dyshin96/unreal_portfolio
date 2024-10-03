@@ -8,6 +8,8 @@
 #include "WarriorsGroundState.h"
 #include "WarriorsPoseState.h"
 #include "WarriorsFeetState.h"
+#include "WarriorsViewAnimationState.h"
+#include "WarriorsRotateInPlaceState.h"
 #include "WarriorsTransitionsState.h"
 #include "WarriorsDynamicTransitionsState.h"
 #include "WarriorsGameplayTags.h"
@@ -38,6 +40,8 @@ private:
 	void RefreshRotationYawOffsets(const float ViewRelativeVelocityYawAngle);
 	void RefreshMovementDirection(const float ViewRelativeVelocityYawAngle);
 	void RefreshTransitions();
+	void RefreshView();
+	void RefreshViewOnGameThread();
 	void PlayQueuedTransitionAnimation();
 	void StopQueuedTransitionAndTurnInPlaceAnimations();
 	void RefreshFoot(FWarriorsFootState& FootState, const FName& IkCurveName, const FName& LockCurveName, const FTransform& ComponentTransformInverse, const float DeltaTime) const;
@@ -68,12 +72,14 @@ protected:
 	void RefreshPoseState();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshDynamicTransitions();
-
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
+	void RefreshRotateInPlace();
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	TObjectPtr<UWarriorsAnimationInstanceSettings> Settings;
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	FWarriorsRotateInPlaceState RotateInPlaceState;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FWarriorsLocomotionState CacheLocomotionState;
 
@@ -92,6 +98,8 @@ public:
 	FWarriorsTransitionsState TransitionsState;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FWarriorsDynamicTransitionsState DynamicTransitionsState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	FWarriorsViewAnimationState ViewState;
 	UPROPERTY(BlueprintReadOnly)
 	float ForwardVelocity;
 	UPROPERTY(BlueprintReadOnly)
