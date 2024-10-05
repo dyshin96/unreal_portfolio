@@ -8,6 +8,7 @@
 #include "WarriorsGroundState.h"
 #include "WarriorsPoseState.h"
 #include "WarriorsFeetState.h"
+#include "WarriorsTurnInPlaceState.h"
 #include "WarriorsViewAnimationState.h"
 #include "WarriorsRotateInPlaceState.h"
 #include "WarriorsTransitionsState.h"
@@ -33,6 +34,8 @@ protected:
 public:
 	virtual void NativePostUpdateAnimation();
 private:
+	bool IsRotateInPlaceAllowed();
+	bool IsTurnInPlaceAllowed();
 	void RefreshLocomotionOnGameThread();
 	void RefreshVelocityBlend();
 	void RefreshFeet(const float DeltaTime);
@@ -42,6 +45,7 @@ private:
 	void RefreshTransitions();
 	void RefreshView();
 	void RefreshViewOnGameThread();
+	void PlayQueuedTurnInPlaceAnimation();
 	void PlayQueuedTransitionAnimation();
 	void StopQueuedTransitionAndTurnInPlaceAnimations();
 	void RefreshFoot(FWarriorsFootState& FootState, const FName& IkCurveName, const FName& LockCurveName, const FTransform& ComponentTransformInverse, const float DeltaTime) const;
@@ -53,6 +57,7 @@ private:
 	class AWarriorsCharacter* Character;
 	FGameplayTag Gait;
 	FGameplayTag Stance = WarriorsStanceTags::Standing;
+	FGameplayTag RotationMode = WarriorsRotationModeTags::ViewDirection;
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
 	double TeleportedTime = 0.0f;
@@ -74,6 +79,10 @@ protected:
 	void RefreshDynamicTransitions();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshRotateInPlace();
+	UFUNCTION(BlueprintCallable, Category = "ALS|Animation Instance", Meta = (BlueprintThreadSafe))
+	void InitializeTurnInPlace();
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
+	void RefreshTurnInPlace();
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
@@ -100,6 +109,8 @@ public:
 	FWarriorsDynamicTransitionsState DynamicTransitionsState;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FWarriorsViewAnimationState ViewState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	FWarriorsTurnInPlaceState TurnInPlaceState;
 	UPROPERTY(BlueprintReadOnly)
 	float ForwardVelocity;
 	UPROPERTY(BlueprintReadOnly)

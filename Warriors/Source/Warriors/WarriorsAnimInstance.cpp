@@ -51,11 +51,6 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	if (IsValid(MovementComponent))
 	{
 		MovementComponent->GetNormalizedVelocity(ForwardVelocity, RightVelocity);
-		bHorizontalMoving = MovementComponent->IsHorizontalMoving();
-		TurningToCameraAlpha = MovementComponent->GetTurnCameraHalfNormalizedValue(DeltaTime);
-		bTurningToCamera = MovementComponent->IsTurningToCamera();
-		bTurningRight = MovementComponent->IsTurningRight();
-		RotateRate = MovementComponent->GetTurnCameraRotateRate();
 	}
 
 	Gait = Character->GetGait();
@@ -74,6 +69,8 @@ void UWarriorsAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
 	}
 
 	DynamicTransitionsState.bUpdatedThisFrame = false;
+	RotateInPlaceState.bUpdatedThisFrame = false;
+	TurnInPlaceState.bUpdatedThisFrame = false;
 
 	RefreshPoseState();
 	RefreshView();
@@ -89,7 +86,7 @@ void UWarriorsAnimInstance::NativePostUpdateAnimation()
 	}
 
 	PlayQueuedTransitionAnimation();
-	/*PlayQueuedTurnInPlaceAnimation();*/
+	PlayQueuedTurnInPlaceAnimation();
 	StopQueuedTransitionAndTurnInPlaceAnimations();
 
 	bPendingUpdate = false;
@@ -491,6 +488,8 @@ void UWarriorsAnimInstance::StopQueuedTransitionAndTurnInPlaceAnimations()
 
 	TransitionsState.bStopTransitionsQueued = false;
 	TransitionsState.QueuedStopTransitionsBlendOutDuration = 0.0f;
+
+	UE_LOG(LogTemp, Warning, TEXT("Stop Transittion Animation"));
 }
 
 void UWarriorsAnimInstance::RefreshPoseState()
@@ -641,6 +640,11 @@ void UWarriorsAnimInstance::RefreshDynamicTransitions()
 	}
 }
 
+bool UWarriorsAnimInstance::IsRotateInPlaceAllowed()
+{
+	return RotationMode == WarriorsRotationModeTags::Aiming;
+}
+
 void UWarriorsAnimInstance::RefreshRotateInPlace()
 {
 #if WITH_EDITOR
@@ -657,7 +661,7 @@ void UWarriorsAnimInstance::RefreshRotateInPlace()
 
 	RotateInPlaceState.bUpdatedThisFrame = true;
 
-	if (CacheLocomotionState.bMoving /* || !IsAllowedRotateInPlace*/)
+	if (true)
 	{
 		RotateInPlaceState.bRotatingLeft = false;
 		RotateInPlaceState.bRotatingRight = false;
@@ -693,6 +697,160 @@ void UWarriorsAnimInstance::RefreshRotateInPlace()
 			GetDeltaSeconds(), PlayRateInterpolationSpeed);
 }
 
+bool UWarriorsAnimInstance::IsTurnInPlaceAllowed()
+{
+	return RotationMode == WarriorsRotationModeTags::ViewDirection;
+}
+
+void UWarriorsAnimInstance::InitializeTurnInPlace()
+{
+	TurnInPlaceState.ActivationDelay = 0.0f;
+}
+
+void UWarriorsAnimInstance::RefreshTurnInPlace()
+{
+#if WITH_EDITOR
+	if (!IsValid(GetWorld()) || !GetWorld()->IsGameWorld())
+	{
+		return;
+	}
+#endif
+
+	if (TurnInPlaceState.bUpdatedThisFrame || !IsValid(Settings))
+	{
+		return;
+	}
+
+	TurnInPlaceState.bUpdatedThisFrame = true;
+
+	if (!TransitionsState.bTransitionsAllowed || !IsTurnInPlaceAllowed())
+	{
+		TurnInPlaceState.ActivationDelay = 0.0f;
+		return;
+	}
+
+	// Check if the view yaw speed is below the threshold and if the view yaw angle is outside the
+	// threshold. If so, begin counting the activation delay time. If not, reset the activation delay
+	// time. This ensures the conditions remain true for a sustained time before turning in place.
+
+	if (ViewState.YawSpeed >= Settings->TurnInPlaceSettings.ViewYawSpeedThreshold ||
+		FMath::Abs(ViewState.YawAngle) <= Settings->TurnInPlaceSettings.ViewYawAngleThreshold)
+	{
+		TurnInPlaceState.ActivationDelay = 0.0f;
+		return;
+	}
+
+	TurnInPlaceState.ActivationDelay = TurnInPlaceState.ActivationDelay + GetDeltaSeconds();
+
+	const auto ActivationDelay{
+		FMath::GetMappedRangeValueClamped({Settings->TurnInPlaceSettings.ViewYawAngleThreshold, 180.0f},
+										  Settings->TurnInPlaceSettings.ViewYawAngleToActivationDelay,
+										  FMath::Abs(ViewState.YawAngle))
+	};
+
+	// Check if the activation delay time exceeds the set delay (mapped to the view yaw angle). If so, start a turn in place.
+
+	if (TurnInPlaceState.ActivationDelay <= ActivationDelay)
+	{
+		return;
+	}
+
+	// Select settings based on turn angle and stance.
+	auto RemapAngleForCounterClockwiseRotation = [](float Angle) -> float
+		{
+			if (Angle > 180.0f - 5.0f)
+			{
+				return Angle - 360.0f;
+			}
+
+			return Angle;
+		};
+
+	const auto bTurnLeft{ RemapAngleForCounterClockwiseRotation(ViewState.YawAngle) <= 0.0f };
+
+	UWarriorsTurnInPlaceSettings* TurnInPlaceSettings{ nullptr };
+	FName TurnInPlaceSlotName;
+
+	if (Stance == WarriorsStanceTags::Standing)
+	{
+		TurnInPlaceSlotName = UWarriorsConstants::TurnInPlaceStandingSlotName();
+
+		if (FMath::Abs(ViewState.YawAngle) < Settings->TurnInPlaceSettings.Turn180AngleThreshold)
+		{
+			TurnInPlaceSettings = bTurnLeft
+				? Settings->TurnInPlaceSettings.StandingTurn90Left
+				: Settings->TurnInPlaceSettings.StandingTurn90Right;
+		}
+		else
+		{
+			TurnInPlaceSettings = bTurnLeft
+				? Settings->TurnInPlaceSettings.StandingTurn180Left
+				: Settings->TurnInPlaceSettings.StandingTurn180Right;
+		}
+	}
+	/*else if (Stance == AlsStanceTags::Crouching)
+	{
+		TurnInPlaceSlotName = UAlsConstants::TurnInPlaceCrouchingSlotName();
+
+		if (FMath::Abs(ViewState.YawAngle) < Settings->TurnInPlace.Turn180AngleThreshold)
+		{
+			TurnInPlaceSettings = bTurnLeft
+				? Settings->TurnInPlace.CrouchingTurn90Left
+				: Settings->TurnInPlace.CrouchingTurn90Right;
+		}
+		else
+		{
+			TurnInPlaceSettings = bTurnLeft
+				? Settings->TurnInPlace.CrouchingTurn180Left
+				: Settings->TurnInPlace.CrouchingTurn180Right;
+		}
+	}*/
+
+	if (IsValid(TurnInPlaceSettings) && ensure(IsValid(TurnInPlaceSettings->Sequence)))
+	{
+		// Animation montages can't be played in the worker thread, so queue them up to play later in the game thread.
+
+		TurnInPlaceState.QueuedSettings = TurnInPlaceSettings;
+		TurnInPlaceState.QueuedSlotName = TurnInPlaceSlotName;
+		TurnInPlaceState.QueuedTurnYawAngle = ViewState.YawAngle;
+
+		if (IsInGameThread())
+		{
+			PlayQueuedTurnInPlaceAnimation();
+		}
+	}
+}
+
+void UWarriorsAnimInstance::PlayQueuedTurnInPlaceAnimation()
+{
+	check(IsInGameThread());
+
+	if (TransitionsState.bStopTransitionsQueued || !IsValid(TurnInPlaceState.QueuedSettings))
+	{
+		return;
+	}
+
+	const auto* TurnInPlaceSettings{ TurnInPlaceState.QueuedSettings.Get() };
+
+	PlaySlotAnimationAsDynamicMontage(TurnInPlaceSettings->Sequence, TurnInPlaceState.QueuedSlotName,
+		Settings->TurnInPlaceSettings.BlendDuration, Settings->TurnInPlaceSettings.BlendDuration,
+		TurnInPlaceSettings->PlayRate, 1, 0.0f);
+
+	// Scale the rotation yaw delta (gets scaled in animation graph) to compensate for play rate and turn angle (if allowed).
+
+	TurnInPlaceState.PlayRate = TurnInPlaceSettings->PlayRate;
+
+	//PlayRate 값으로 RotateYawSpeed값을 Scale하여 더 많은 회전을 하도록 수정합니다. 
+	if (TurnInPlaceSettings->bScalePlayRateByAnimatedTurnAngle)
+	{
+		TurnInPlaceState.PlayRate *= FMath::Abs(TurnInPlaceState.QueuedTurnYawAngle / TurnInPlaceSettings->AnimatedTurnAngle);
+	}
+
+	TurnInPlaceState.QueuedSettings = nullptr;
+	TurnInPlaceState.QueuedSlotName = NAME_None;
+	TurnInPlaceState.QueuedTurnYawAngle = 0.0f;
+}
+
 void UWarriorsAnimInstance::PlayQueuedTransitionAnimation()
 {
 	check(IsInGameThread());
@@ -711,6 +869,8 @@ void UWarriorsAnimInstance::PlayQueuedTransitionAnimation()
 	TransitionsState.QueuedTransitionBlendOutDuration = 0.0f;
 	TransitionsState.QueuedTransitionPlayRate = 1.0f;
 	TransitionsState.QueuedTransitionStartTime = 0.0f;
+	
+	UE_LOG(LogTemp, Warning,TEXT("Play Transittion Animation"));
 }
 
 void UWarriorsAnimInstance::RefreshVelocityBlend()
@@ -805,7 +965,7 @@ void UWarriorsAnimInstance::StopTransitionAndTurnInPlaceAnimations(const float B
 {
 	TransitionsState.bStopTransitionsQueued = true;
 	TransitionsState.QueuedStopTransitionsBlendOutDuration = BlendOutDuration;
-
+	UE_LOG(LogTemp, Warning, TEXT("Queue Stop Transittion Animation"));
 	if (IsInGameThread())
 	{
 		StopQueuedTransitionAndTurnInPlaceAnimations();

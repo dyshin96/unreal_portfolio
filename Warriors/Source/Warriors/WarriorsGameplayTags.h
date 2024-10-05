@@ -12,6 +12,7 @@ namespace WarriorsGaitTags
 namespace WarriorsRotationModeTags
 {
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ViewDirection);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Aiming);
 }
 
 namespace WarriorsStanceTags

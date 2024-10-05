@@ -10,6 +10,7 @@ namespace WarriorsGaitTags
 namespace WarriorsRotationModeTags
 {
 	UE_DEFINE_GAMEPLAY_TAG(ViewDirection, FName{ TEXTVIEW("Warriors.RotationMode.ViewDirection") });
+	UE_DEFINE_GAMEPLAY_TAG(Aiming, FName{ TEXTVIEW("Warriors.RotationMode.Aiming") });
 }
 
 namespace WarriorsStanceTags

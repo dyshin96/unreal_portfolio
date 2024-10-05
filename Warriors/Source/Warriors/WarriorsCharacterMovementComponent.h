@@ -48,11 +48,6 @@ public:
 	UWarriorsCharacterMovementComponent();
 	void PerformMovement(float DeltaTime) override;
 	void GetNormalizedVelocity(float& OutForwardVelocity, float& OutRightVelocity);
-	bool IsTurningToCamera();
-	bool IsTurningRight();
-	bool IsHorizontalMoving();
-	float GetTurnCameraHalfNormalizedValue(float DeltaTime);
-	float GetTurnCameraRotateRate();
 	float GetGaitAmount();
 	FWarriorsMovementGaitSettings& GetGaitSettings();
 };

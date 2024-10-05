@@ -63,6 +63,14 @@ void UWarriorsLinkedAnimInstance::RefreshDynamicTransitions()
 	}
 }
 
+void UWarriorsLinkedAnimInstance::RefreshRotateInPlace()
+{
+	if (Parent.IsValid())
+	{
+		Parent->RefreshRotateInPlace();
+	}
+}
+
 void UWarriorsLinkedAnimInstance::InitializeGrounded()
 {
 	if (Parent.IsValid())
@@ -76,5 +84,21 @@ void UWarriorsLinkedAnimInstance::SetHipsDirection(EWarriorsHipsDirection HipsDi
 	if (Parent.IsValid())
 	{
 		Parent->GroundedState.HipsDirection = HipsDirection;
+	}
+}
+
+void UWarriorsLinkedAnimInstance::RefreshTurnInPlace()
+{
+	if (Parent.IsValid())
+	{
+		Parent->RefreshTurnInPlace();
+	}
+}
+
+void UWarriorsLinkedAnimInstance::InitializeTurnInPlace()
+{
+	if (Parent.IsValid())
+	{
+		Parent->InitializeTurnInPlace();
 	}
 }

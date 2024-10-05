@@ -87,6 +87,7 @@ void AWarriorsCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	RefreshInput(DeltaTime);
 	RefreshViewState(DeltaTime);
+	RefreshGroundedRotation(DeltaTime);
 	RefreshLocomotionLocationAndRotation(DeltaTime);
 	RefreshLocomotion();
 	RefreshGait();
@@ -145,6 +146,19 @@ void AWarriorsCharacter::RefreshLocomotionLocationAndRotation(const float DeltaT
 	{
 		LocomotionState.Location = ActorTransform.TransformPosition(GetMesh()->GetRelativeLocation() - GetBaseTranslationOffset());
 		LocomotionState.Rotation = GetActorRotation();
+	}
+	else
+	{
+		//애니메이션이나 본 트렌스폼에 의해 메쉬 릴레이티브 스페이스에서 변환이 있을 수 있으므로 SmoothTransform을 사용합니다. 
+		const FTransform SmoothTransform{ ActorTransform * FTransform{
+			GetMesh()->GetRelativeRotationCache().RotatorToQuat_ReadOnly(
+			GetMesh()->GetRelativeRotation()) * GetBaseRotationOffset().Inverse(),
+			GetMesh()->GetRelativeLocation() - GetBaseTranslationOffset()
+		}
+		};
+
+		LocomotionState.Location = SmoothTransform.GetLocation();
+		LocomotionState.Rotation = SmoothTransform.Rotator();
 	}
 }
 
