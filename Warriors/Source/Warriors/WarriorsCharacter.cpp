@@ -224,7 +224,6 @@ void AWarriorsCharacter::SetRotationExtraSmooth(const float TargetYawAngle, cons
 	SetTargetYawAngleSmooth(TargetYawAngle, DeltaTime, TargetYawAngleRotationSpeed);
 
 	FRotator NewRotation{ GetActorRotation() };
-	
 	if (InterpolationSpeed > 0.0f)
 	{
 		float Delta = LocomotionState.SmoothTargetYawAngle - FMath::UnwindDegrees(NewRotation.Yaw);

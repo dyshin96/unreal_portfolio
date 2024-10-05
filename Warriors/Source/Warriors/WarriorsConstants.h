@@ -167,6 +167,6 @@ inline const FName& UWarriorsConstants::RotationYawSpeedCurveName()
 
 inline const FName& UWarriorsConstants::RotationYawOffsetCurveName()
 {
-	static const FName Name{ TEXTVIEW("RotationYawSpeed") };
+	static const FName Name{ TEXTVIEW("RotationYawOffset") };
 	return Name;
 }
