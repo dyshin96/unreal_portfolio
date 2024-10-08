@@ -34,8 +34,8 @@ protected:
     EItemType ItemType;
 	UPROPERTY(EditAnywhere)
 	FString ItemName;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* StaticMeshComponent;
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	UItemWidgetComponent* ItemWidgetComponent;
 };

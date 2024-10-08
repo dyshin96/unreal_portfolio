@@ -21,7 +21,17 @@ FItemData* UItemSubsystem::GetItemData(EItemType ItemType, const FString& ItemNa
     FItemTypeData* ItemTypeData = GetItemTypeDataTable(ItemType);
     if (ItemTypeData)
     {
-		return ItemTypeData->DataTable.LoadSynchronous()->FindRow<FItemData>(FName(ItemName), TEXT(""), true);
+		UDataTable* ItemDataTable = ItemTypeData->DataTable.LoadSynchronous();
+        TArray<FItemData*> AllRows;
+        ItemDataTable->GetAllRows(TEXT(""), AllRows);
+
+        for (FItemData* Row : AllRows)
+        {
+            if (Row && Row->ItemName == ItemName)
+            {
+                return Row;
+            }
+        }
     }
     else
     {

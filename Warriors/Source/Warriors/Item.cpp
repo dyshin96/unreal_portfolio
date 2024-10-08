@@ -29,7 +29,7 @@ void AItem::BeginPlay()
 		FItemData* ItemData = ItemSubsystem->GetItemData(ItemType, ItemName);
 		if (ItemData)
 		{
-			if (ItemData->StaticMesh.IsValid())
+			if (ItemData->StaticMesh.LoadSynchronous())
 			{
 				StaticMeshComponent = NewObject<UStaticMeshComponent>();
 				StaticMeshComponent->SetStaticMesh(ItemData->StaticMesh.Get());
