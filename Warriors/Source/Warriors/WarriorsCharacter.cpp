@@ -2,6 +2,7 @@
 
 #include "WarriorsCharacter.h"
 #include "WarriorsCharacterSettings.h"
+#include "Item.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -85,12 +86,56 @@ void AWarriorsCharacter::PostRegisterAllComponents()
 void AWarriorsCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	DetectInterationObject();
 	RefreshInput(DeltaTime);
 	RefreshViewState(DeltaTime);
 	RefreshGroundedRotation(DeltaTime);
 	RefreshLocomotionLocationAndRotation(DeltaTime);
 	RefreshLocomotion();
 	RefreshGait();
+}
+
+void AWarriorsCharacter::DetectInterationObject()
+{
+	FVector Start = GetActorLocation();
+	FVector ForwardVector = GetActorForwardVector();
+	float MaxDistance = 300.0f;
+	float MAXAngle = 30.0f;
+
+	FHitResult HitResult;
+	FVector End = Start + (ForwardVector * MaxDistance);
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(this);
+
+	TArray<AItem*> Items;
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
+	if (bHit)
+	{
+		if (AActor* HitActor = Cast<AActor>(HitResult.GetActor()))
+		{
+			if (AItem* Item = Cast<AItem>(HitActor))
+			{
+				if (DetectedItems.Contains(Item) == false)
+				{
+				    Item->OnDetected.Broadcast();
+				}
+
+				Items.Add(Item);
+			}
+		}
+	}
+
+	TArray<AItem*> UnDetectedItem = DetectedItems.FilterByPredicate([Items](const AItem* Item)
+	{
+		return Items.Contains(Item) == false;
+	});
+
+	for (AItem* Item : UnDetectedItem)
+	{
+		Item->OnUnDetected.Broadcast();
+	}
+
+	DetectedItems = Items;
 }
 
 void AWarriorsCharacter::SetInputDirection(FVector NewInputDirection)
@@ -409,6 +454,8 @@ void AWarriorsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::Look);
+
+		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::Interaction);
 	}
 	else
 	{
@@ -449,6 +496,15 @@ void AWarriorsCharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void AWarriorsCharacter::Interaction(const FInputActionValue& Value)
+{
+	bool bPress = Value.Get<bool>();
+	if (bPress)
+	{
+		
 	}
 }
 

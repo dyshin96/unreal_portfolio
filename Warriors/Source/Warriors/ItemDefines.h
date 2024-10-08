@@ -14,6 +14,7 @@ enum class EItemType : uint8
 	Shoes,
 	Gloves,
 	Shoulder,
+	TwoHandedSword,
 };
 
 USTRUCT()
@@ -35,8 +36,11 @@ struct FItemData : public FTableRowBase
 	UPROPERTY(EditAnywhere)
 	FString ItemName;
 	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<USkeletalMesh> DataTable;
+	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UStaticMesh> StaticMesh;
 	UPROPERTY(EditAnywhere)
 	TSoftObjectPtr<UTexture2D> Texture;
-
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUserWidget> ForDisPlayWidget;
 };

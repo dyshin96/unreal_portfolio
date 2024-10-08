@@ -12,6 +12,7 @@
 #include "WarriorsLocomotionState.h"
 #include "WarriorsCharacter.generated.h"
 
+class AItem;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
@@ -48,6 +49,8 @@ class AWarriorsCharacter : public ACharacter
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractionAction;
 
 	UPROPERTY()
 	USkeletalMeshComponent* HeadMesh;
@@ -91,6 +94,8 @@ private:
 
 	FVector_NetQuantizeNormal InputDirection{ForceInit};
 #pragma endregion 
+	UPROPERTY()
+	TArray<AItem*> DetectedItems;
 
 	UPROPERTY()
 	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
@@ -99,6 +104,7 @@ public:
 private:
 	void SetInputDirection(FVector NewInputDirection);
 	void SetTargetYawAngle(const float TargetYawAngle);
+	void DetectInterationObject();
 	void RefreshViewState(const float DeltaTime);
 	void RefreshInput(const float DeltaTime);
 	float CalculateGroundedMovingRotationInterpolationSpeed() const;
@@ -125,8 +131,9 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 			
-	bool SaveSkeletalMeshThumbnailToDisk(class USkeletalMesh* SkeletalMesh, const FString& SavePath);
+	void Interaction(const FInputActionValue& Value);
 
+	bool SaveSkeletalMeshThumbnailToDisk(class USkeletalMesh* SkeletalMesh, const FString& SavePath);
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
