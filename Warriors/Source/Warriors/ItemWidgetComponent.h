@@ -13,7 +13,4 @@ class UItemWidgetComponent : public UWidgetComponent
 
 public:
 	virtual void BeginPlay() override;
-private:
-	UPROPERTY()
-	UUserWidget* ForDisPlayWidget;
 };

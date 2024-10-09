@@ -14,6 +14,9 @@ void AItem::BeginPlay()
 	if (bForDisplayItem)
 	{
 		ItemWidgetComponent = NewObject<UItemWidgetComponent>(this);
+		ItemWidgetComponent->SetupAttachment(GetRootComponent());
+		ItemWidgetComponent->RegisterComponent();
+
 		OnDetected.AddWeakLambda(this, [this]()
 		{
 			ItemWidgetComponent->SetVisibility(true);

@@ -3,25 +3,31 @@
 #include "ItemWidgetComponent.h"
 #include "Engine/GameInstance.h"
 #include "ItemSubSystem.h"
+#include "ForDisplayWidget.h"
 #include "Item.h"
 
 void UItemWidgetComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	SetVisibility(false);
+	SetCastShadow(false);
+	
 	AItem* Item = Cast<AItem>(GetOwner());
 	if (IsValid(Item))
-	{
-		SetupAttachment(Item->GetRootComponent());
-		RegisterComponent();
-		
+	{	
 		UItemSubsystem* ItemSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UItemSubsystem>();
 		if (IsValid(ItemSubsystem))
 		{
-			ItemSubsystem->GetItemData(Item->GetItemType(), Item->GetItemName());
-			if (IsValid(ForDisPlayWidget))
+			FItemData* ItemData = ItemSubsystem->GetItemData(Item->GetItemType(), Item->GetItemName());
+			if (ItemData && ItemData->ForDisPlayWidget)
 			{
-				SetWidget(ForDisPlayWidget);
+				SetWidgetClass(ItemData->ForDisPlayWidget.Get());
+				UForDisplayWidget* GettingWidget = Cast<UForDisplayWidget>(GetWidget());
+				if (IsValid(GettingWidget))
+				{
+					GettingWidget->InitializeWithItemData(Item);
+				}
 			}
 		}
 	}
