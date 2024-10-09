@@ -2,6 +2,8 @@
 
 #include "Item.h"
 #include "Components/BoxComponent.h"
+#include "Engine/StreamableManager.h"
+#include "Engine/AssetManager.h"
 #include "ItemWidgetComponent.h"
 #include "ItemSubSystem.h"
 
@@ -29,11 +31,17 @@ void AItem::BeginPlay()
 		FItemData* ItemData = ItemSubsystem->GetItemData(ItemType, ItemName);
 		if (ItemData)
 		{
-			if (ItemData->StaticMesh.LoadSynchronous())
+			FStreamableManager& StreamableManager = UAssetManager::GetStreamableManager();
+			StreamableManager.RequestAsyncLoad(ItemData->StaticMesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, ItemData]() 
 			{
-				StaticMeshComponent = NewObject<UStaticMeshComponent>();
-				StaticMeshComponent->SetStaticMesh(ItemData->StaticMesh.Get());
-			}
+				if (ItemData && IsValid(ItemData->StaticMesh.Get()))
+				{
+					StaticMeshComponent = NewObject<UStaticMeshComponent>(this);
+					StaticMeshComponent->SetStaticMesh(ItemData->StaticMesh.Get());
+					StaticMeshComponent->SetupAttachment(RootComponent);
+					StaticMeshComponent->RegisterComponent();
+				}
+			}));
 		}
 	}
 }
