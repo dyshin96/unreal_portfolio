@@ -138,6 +138,11 @@ void AWarriorsCharacter::DetectInterationObject()
 	DetectedItems = Items;
 }
 
+void AWarriorsCharacter::EquipItem(AItem* Item)
+{
+	//아이템 획득 로직 처리, 소켓에 액터를 스폰해서 착용할 수 있도록 구현해야한다.
+}
+
 void AWarriorsCharacter::SetInputDirection(FVector NewInputDirection)
 {
 	NewInputDirection = NewInputDirection.GetSafeNormal();
@@ -504,7 +509,32 @@ void AWarriorsCharacter::Interaction(const FInputActionValue& Value)
 	bool bPress = Value.Get<bool>();
 	if (bPress)
 	{
-		
+		if (DetectedItems.Num() > 0)
+		{
+			AItem* NearestItem = nullptr;
+			float NearestDistance = UE_FLOAT_HUGE_DISTANCE;
+			for (AItem* Item : DetectedItems)
+			{
+				if (IsValid(Item))
+				{
+					float Distance = FVector::Distance(GetActorLocation(), Item->GetActorLocation());
+					if (Distance < NearestDistance)
+					{
+						NearestDistance = Distance;
+						NearestItem = Item;
+					}
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Detected Item is nullptr!"));
+				}
+			}
+
+			if (IsValid(NearestItem))
+			{
+				EquipItem(NearestItem);
+			}
+		}
 	}
 }
 
