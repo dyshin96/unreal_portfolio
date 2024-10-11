@@ -72,6 +72,7 @@ void AWarriorsCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	DetectInteractionObject();
+	RefreshItem(DeltaTime);
 	RefreshInput(DeltaTime);
 	RefreshViewState(DeltaTime);
 	RefreshGroundedRotation(DeltaTime);
@@ -165,6 +166,15 @@ void AWarriorsCharacter::RefreshViewState(const float DeltaTime)
 	if (DeltaTime > UE_SMALL_NUMBER)
 	{
 		ViewState.YawSpeed = FMath::Abs(UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - ViewState.PreviousYawAngle)) / DeltaTime;
+	}
+}
+
+void AWarriorsCharacter::RefreshItem(const float DeltaTime)
+{
+	if (ItemState.ItemSwapCoolTime > 0.0f)
+	{
+		ItemState.ItemSwapCoolTime -= DeltaTime;
+		ItemState.ItemSwapCoolTime = FMath::Max(ItemState.ItemSwapCoolTime, 0.0f);
 	}
 }
 
@@ -584,7 +594,7 @@ void AWarriorsCharacter::EquipItem(int32 Index)
 		UnEquipItem();
 		return;
 	}
-
+	ItemState.ItemSwapCoolTime = ItemSwapCoolTime;
 	ItemState.EquipItemIndex = Index;
 	ItemState.EquipItemType = GainedItem[Index]->GetItemType();
 }

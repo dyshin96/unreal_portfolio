@@ -15,6 +15,7 @@
 #include "WarriorsDynamicTransitionsState.h"
 #include "WarriorsGameplayTags.h"
 #include "WarriorsAnimationInstanceSettings.h"
+#include "WarriorsItemState.h"
 #include "WarriorsAnimInstance.generated.h"
 
 class UWarriorsLinkedAnimInstance;
@@ -67,6 +68,9 @@ protected:
 	FVector3f GetRelativeVelocity() const;
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void InitializeGrounded();
+
+	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
+	void RefreshItemState();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshGroundedMovement();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
@@ -111,6 +115,9 @@ public:
 	FWarriorsViewAnimationState ViewState;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FWarriorsTurnInPlaceState TurnInPlaceState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	FWarriorsItemState ItemState;
+
 	UPROPERTY(BlueprintReadOnly)
 	float ForwardVelocity;
 	UPROPERTY(BlueprintReadOnly)

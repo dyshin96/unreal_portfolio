@@ -6,6 +6,7 @@
 #include "ItemDefines.generated.h"
 
 constexpr int32 MaxGainedItemCount = 2;
+constexpr int32 ItemSwapCoolTime = 1.5f;
 
 UENUM()
 enum class EItemType : uint8

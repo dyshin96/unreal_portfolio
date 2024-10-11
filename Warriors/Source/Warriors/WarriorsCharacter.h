@@ -98,6 +98,7 @@ private:
 	void SetTargetYawAngle(const float TargetYawAngle);
 	void DetectInteractionObject();
 	void RefreshViewState(const float DeltaTime);
+	void RefreshItem(const float DeltaTime);
 	void RefreshInput(const float DeltaTime);
 	float CalculateGroundedMovingRotationInterpolationSpeed() const;
 	void SetRotationExtraSmooth(const float TargetYawAngle, const float DeltaTime, const float InterpolationSpeed, const float TargetYawAngleRotationSpeed);

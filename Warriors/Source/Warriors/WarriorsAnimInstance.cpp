@@ -54,6 +54,7 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	}
 
 	Gait = Character->GetGait();
+	RefreshItemState();
 	RefreshViewOnGameThread();
 	RefreshLocomotionOnGameThread();
 	RefreshFeetOnGameThread();
@@ -149,6 +150,28 @@ void UWarriorsAnimInstance::RefreshStandingMovement()
 					PoseState.UnweightedGaitSprintingAmount)
 	};
 	StandingState.PlayRate = FMath::Clamp(WalkRunSprintSpeedAmount / StandingState.StrideBlendAmount, UE_KINDA_SMALL_NUMBER, 3.0f);
+}
+
+void UWarriorsAnimInstance::RefreshItemState()
+{
+	if (!Settings)
+	{
+		return;
+	}
+
+	FWarriorsItemState PreviousItemState = ItemState;
+	FWarriorsItemState CurrentItemState = Character->GetItemState();
+	ItemState = CurrentItemState;
+
+	if (ItemState.EquipItemType != PreviousItemState.EquipItemType)
+	{
+		if (ItemState.EquipItemType == EItemType::TwoHandedSword)
+		{
+			PlaySlotAnimationAsDynamicMontage(Settings->ItemSettings.TwoHandedSwordDrawSequence, UWarriorsConstants::ItemSlotName(), Settings->ItemSettings.TwoHanedSwordDrawDefaultPlayRate);
+		}
+	}
+
+	ItemState.SwapAnimationBlendAmount = ItemState.ItemSwapCoolTime > 0.0f ? 1.0f : 0.0f;
 }
 
 void UWarriorsAnimInstance::RefreshGroundedMovement()
@@ -488,8 +511,6 @@ void UWarriorsAnimInstance::StopQueuedTransitionAndTurnInPlaceAnimations()
 
 	TransitionsState.bStopTransitionsQueued = false;
 	TransitionsState.QueuedStopTransitionsBlendOutDuration = 0.0f;
-
-	UE_LOG(LogTemp, Warning, TEXT("Stop Transittion Animation"));
 }
 
 void UWarriorsAnimInstance::RefreshPoseState()
@@ -869,8 +890,6 @@ void UWarriorsAnimInstance::PlayQueuedTransitionAnimation()
 	TransitionsState.QueuedTransitionBlendOutDuration = 0.0f;
 	TransitionsState.QueuedTransitionPlayRate = 1.0f;
 	TransitionsState.QueuedTransitionStartTime = 0.0f;
-	
-	UE_LOG(LogTemp, Warning,TEXT("Play Transittion Animation"));
 }
 
 void UWarriorsAnimInstance::RefreshVelocityBlend()
@@ -965,7 +984,7 @@ void UWarriorsAnimInstance::StopTransitionAndTurnInPlaceAnimations(const float B
 {
 	TransitionsState.bStopTransitionsQueued = true;
 	TransitionsState.QueuedStopTransitionsBlendOutDuration = BlendOutDuration;
-	UE_LOG(LogTemp, Warning, TEXT("Queue Stop Transittion Animation"));
+
 	if (IsInGameThread())
 	{
 		StopQueuedTransitionAndTurnInPlaceAnimations();

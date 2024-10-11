@@ -12,6 +12,8 @@ class UWarriorsConstants : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Slot Name"))
+	static const FName& ItemSlotName();
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Slot Name"))
 	static const FName& TurnInPlaceStandingSlotName();
 
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
@@ -56,6 +58,12 @@ public:
 	static const FName & RotationYawOffsetCurveName();
 };
 
+
+inline const FName& UWarriorsConstants::ItemSlotName()
+{
+	static const FName SlotName(TEXT("Item"));
+	return SlotName;
+}
 
 inline const FName& UWarriorsConstants::TurnInPlaceStandingSlotName()
 {
