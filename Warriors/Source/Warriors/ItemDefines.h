@@ -8,12 +8,7 @@
 UENUM()
 enum class EItemType : uint8
 {
-	Helmet = 0,
-	Armor,
-	Pants,
-	Shoes,
-	Gloves,
-	Shoulder,
+	None, //∏«¡÷∏‘ 
 	TwoHandedSword,
 };
 

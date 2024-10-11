@@ -3,6 +3,7 @@
 #include "WarriorsCharacter.h"
 #include "WarriorsCharacterSettings.h"
 #include "Item.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -57,22 +58,6 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
-	HeadMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Head"));
-	HandsMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Hands"));
-	LegsMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Legs"));
-	FeetMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Feet"));
-	EyesMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Eyes"));
-	HairMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Hair"));
-	HelmetMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Helmet"));
-
-	InitSubMeshs(HeadMesh);
-	InitSubMeshs(HandsMesh);
-	InitSubMeshs(LegsMesh);
-	InitSubMeshs(FeetMesh);
-	InitSubMeshs(EyesMesh);
-	InitSubMeshs(HairMesh);
-	InitSubMeshs(HelmetMesh);
 }
 
 void AWarriorsCharacter::PostRegisterAllComponents()
@@ -86,7 +71,7 @@ void AWarriorsCharacter::PostRegisterAllComponents()
 void AWarriorsCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	DetectInterationObject();
+	DetectInteractionObject();
 	RefreshInput(DeltaTime);
 	RefreshViewState(DeltaTime);
 	RefreshGroundedRotation(DeltaTime);
@@ -95,7 +80,7 @@ void AWarriorsCharacter::Tick(float DeltaTime)
 	RefreshGait();
 }
 
-void AWarriorsCharacter::DetectInterationObject()
+void AWarriorsCharacter::DetectInteractionObject()
 {
 	FVector Start = GetActorLocation();
 	FVector ForwardVector = GetActorForwardVector();
@@ -138,9 +123,27 @@ void AWarriorsCharacter::DetectInterationObject()
 	DetectedItems = Items;
 }
 
-void AWarriorsCharacter::EquipItem(AItem* Item)
+void AWarriorsCharacter::EquipItem(AItem* InEquipItem)
 {
+	if (!IsCanEquip(InEquipItem))
+	{
+		return;
+	}
+
 	//아이템 획득 로직 처리, 소켓에 액터를 스폰해서 착용할 수 있도록 구현해야한다.
+	AItem* SpawnItem = GetWorld()->SpawnActor<AItem>(AItem::StaticClass(), GetActorLocation(), GetActorRotation());
+	SpawnItem->InitializeItem(InEquipItem->GetItemType(), InEquipItem->GetItemName());
+	EItemType ItemType = SpawnItem->GetItemType();
+	const USkeletalMeshSocket* MeshSocket = GetMesh()->GetSocketByName(FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemType))));
+	if (IsValid(MeshSocket))
+	{
+		if (SpawnItem->GetRootComponent())
+		{
+			MeshSocket->AttachActor(SpawnItem, GetMesh());
+		}
+	}
+	EquippedItem = SpawnItem;
+	ItemState.ItemType = EquippedItem->GetItemType();
 }
 
 void AWarriorsCharacter::SetInputDirection(FVector NewInputDirection)
@@ -344,12 +347,6 @@ void AWarriorsCharacter::ApplyRotationYawSpeedAnimationCurve(float DeltaTime)
 	}
 }
 
-void AWarriorsCharacter::InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent)
-{
-	SkeletalMeshComponent->SetupAttachment(GetMesh());	
-	SkeletalMeshComponent->SetLeaderPoseComponent(GetMesh());
-}
-
 void AWarriorsCharacter::RefreshGait()
 {
 	const auto MaxAllowedGait{ CalculateMaxAllowedGait() };
@@ -406,21 +403,6 @@ void AWarriorsCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 	//SaveSkeletalMeshThumbnailToDisk();
-	TSoftObjectPtr<USkeletalMesh> MeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Chest_Arms.SK_Chest_Arms")));
-	TSoftObjectPtr<USkeletalMesh> HeadMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Head_Teeth_Tongue.SK_Head_Teeth_Tongue")));
-	TSoftObjectPtr<USkeletalMesh> HandsMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Hands.SK_Hands")));
-	TSoftObjectPtr<USkeletalMesh> LegsMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/CivilianClothing_A/SK_Civilian_Trousers_A_Green.SK_Civilian_Trousers_A_Green")));
-	TSoftObjectPtr<USkeletalMesh> FeetMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Feet.SK_Feet")));
-	TSoftObjectPtr<USkeletalMesh> EyesMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Eyes.SK_Eyes")));
-	TSoftObjectPtr<USkeletalMesh> HairMeshPtr(FSoftObjectPath(TEXT("/Game/MRPGT/SkeletalMeshes/Humans/Male_D/SK_Hair.SK_Hair")));
-
-	GetMesh()->SetSkeletalMesh(MeshPtr.LoadSynchronous());
-	HeadMesh->SetSkeletalMesh(HeadMeshPtr.LoadSynchronous());
-	HandsMesh->SetSkeletalMesh(HandsMeshPtr.LoadSynchronous());
-	LegsMesh->SetSkeletalMesh(LegsMeshPtr.LoadSynchronous());
-	FeetMesh->SetSkeletalMesh(FeetMeshPtr.LoadSynchronous());
-	EyesMesh->SetSkeletalMesh(EyesMeshPtr.LoadSynchronous());
-	HairMesh->SetSkeletalMesh(HairMeshPtr.LoadSynchronous());
 
 	WarriorsCharacterMovementComponent = Cast<UWarriorsCharacterMovementComponent>(GetCharacterMovement());
 
@@ -536,6 +518,19 @@ void AWarriorsCharacter::Interaction(const FInputActionValue& Value)
 			}
 		}
 	}
+}
+
+bool AWarriorsCharacter::IsCanEquip(AItem* Item)
+{
+	if (IsValid(EquippedItem))
+	{
+		if (EquippedItem->GetItemName() == Item->GetItemName())
+		{
+			return false;
+		}
+	}
+	
+	return true;
 }
 
 bool AWarriorsCharacter::SaveSkeletalMeshThumbnailToDisk(USkeletalMesh* SkeletalMesh, const FString& SavePath)

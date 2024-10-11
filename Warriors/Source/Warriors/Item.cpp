@@ -7,9 +7,21 @@
 #include "ItemWidgetComponent.h"
 #include "ItemSubSystem.h"
 
+AItem::AItem()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
+	StaticMeshComponent->SetVisibility(true);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RootComponent = StaticMeshComponent;
+	bForDisplayItem = false;
+}
+
 void AItem::BeginPlay()
 {
 	Super::BeginPlay();
+	UpdateItemStaticMesh();
 
 	if (bForDisplayItem)
 	{
@@ -26,23 +38,30 @@ void AItem::BeginPlay()
 		{
 			ItemWidgetComponent->SetVisibility(false);
 		});
-	}
+	}	
+}
 
+void AItem::InitializeItem(EItemType InItemType, FString InItemName)
+{
+	ItemType = InItemType;
+	ItemName = InItemName;
+	UpdateItemStaticMesh();
+}
+
+void AItem::UpdateItemStaticMesh()
+{
 	UItemSubsystem* ItemSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UItemSubsystem>();
-	if (IsValid(ItemSubsystem))
+	if (IsValid(ItemSubsystem) && !ItemName.IsEmpty())
 	{
 		FItemData* ItemData = ItemSubsystem->GetItemData(ItemType, ItemName);
 		if (ItemData)
 		{
 			FStreamableManager& StreamableManager = UAssetManager::GetStreamableManager();
-			StreamableManager.RequestAsyncLoad(ItemData->StaticMesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, ItemData]() 
+			StreamableManager.RequestAsyncLoad(ItemData->StaticMesh.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this, [this, ItemData]()
 			{
-				if (ItemData && IsValid(ItemData->StaticMesh.Get()))
+				if (IsValid(ItemData->StaticMesh.Get()))
 				{
-					StaticMeshComponent = NewObject<UStaticMeshComponent>(this);
 					StaticMeshComponent->SetStaticMesh(ItemData->StaticMesh.Get());
-					StaticMeshComponent->SetupAttachment(RootComponent);
-					StaticMeshComponent->RegisterComponent();
 				}
 			}));
 		}

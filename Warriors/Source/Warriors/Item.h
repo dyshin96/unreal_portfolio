@@ -16,11 +16,18 @@ class AItem : public AActor
 	GENERATED_BODY()
 
 public:
+	AItem();
 	virtual void BeginPlay() override;
+	
 	bool IsForDisplayItem();
+	
 	EItemType GetItemType() const { return ItemType; }
 	FString GetItemName() const {return ItemName; }
 	float GetHeight() const {return 0.0f; }
+
+	void InitializeItem(EItemType ItemType, FString ItemName);
+private:
+	void UpdateItemStaticMesh();
 
 public:
 	UPROPERTY(EditAnywhere)
@@ -38,4 +45,6 @@ protected:
 	UStaticMeshComponent* StaticMeshComponent;
 	UPROPERTY(VisibleAnywhere)
 	UItemWidgetComponent* ItemWidgetComponent;
+	UPROPERTY(VisibleAnywhere)
+	TArray<UBoxComponent*> BoxComponents;
 };

@@ -10,6 +10,7 @@
 #include "WarriorsCharacterSettings.h"
 #include "Logging/LogMacros.h"
 #include "WarriorsLocomotionState.h"
+#include "WarriorsItemState.h"
 #include "WarriorsCharacter.generated.h"
 
 class AItem;
@@ -51,34 +52,11 @@ class AWarriorsCharacter : public ACharacter
 	UInputAction* LookAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	UInputAction* InteractionAction;
-
-	UPROPERTY()
-	USkeletalMeshComponent* HeadMesh;
-	UPROPERTY()
-	USkeletalMeshComponent* HandsMesh;
-	UPROPERTY()
-	USkeletalMeshComponent* FeetMesh;
-	UPROPERTY()
-	USkeletalMeshComponent* HairMesh;
-	UPROPERTY()
-	USkeletalMeshComponent* EyesMesh;
-	UPROPERTY()
-	USkeletalMeshComponent* LegsMesh;
-	UPROPERTY()
-	USkeletalMeshComponent* HelmetMesh;
-	UPROPERTY()
-	USkeletalMeshComponent* ShoulderArmour;
-	UPROPERTY()
-	USkeletalMeshComponent* Belt;
-	UPROPERTY()
-	USkeletalMeshComponent* Necklace;
-	UPROPERTY()
-	USkeletalMeshComponent* Helmet;
-
 private:
 #pragma region locomotion
 	FWarriorsLocomotionState LocomotionState;
 	FWarriorsViewState ViewState;
+	FWarriorsItemState ItemState;
 
 	UPROPERTY(VisibleAnywhere, Category = "State|Warriors Character", Transient)
 	FGameplayTag Gait {WarriorsGaitTags::Walking};
@@ -96,15 +74,19 @@ private:
 #pragma endregion 
 	UPROPERTY()
 	TArray<AItem*> DetectedItems;
+	UPROPERTY()
+	AItem* EquippedItem;
 
 	UPROPERTY()
 	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
+	void EquipItem(AItem* Item);
+	bool IsCanEquip(AItem* Item);
 	void SetInputDirection(FVector NewInputDirection);
 	void SetTargetYawAngle(const float TargetYawAngle);
-	void DetectInterationObject();
+	void DetectInteractionObject();
 	void RefreshViewState(const float DeltaTime);
 	void RefreshInput(const float DeltaTime);
 	float CalculateGroundedMovingRotationInterpolationSpeed() const;
@@ -115,7 +97,6 @@ private:
 	void RefreshLocomotion();
 	void RefreshGroundedRotation(const float DeltaTime);
 	void ApplyRotationYawSpeedAnimationCurve(float DeltaTime);
-	void InitSubMeshs(USkeletalMeshComponent* SkeletalMeshComponent);
 	void RefreshGait();
 	void SetGait(const FGameplayTag& NewGait);
 	FGameplayTag CalculateMaxAllowedGait() const;
@@ -147,6 +128,7 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FWarriorsLocomotionState GetLocomotionState() const { return LocomotionState; }
 	FWarriorsViewState GetViewState() const { return ViewState; }
+	FWarriorsItemState GetItemState() const {return ItemState; }
 	UWarriorsMovementSettings* GetWarriorsMovementSettings() const;
 	FGameplayTag GetGait() const { return Gait; };
 };
