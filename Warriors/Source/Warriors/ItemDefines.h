@@ -5,6 +5,8 @@
 #include "Engine/DataTable.h"
 #include "ItemDefines.generated.h"
 
+constexpr int32 MaxGainedItemCount = 2;
+
 UENUM()
 enum class EItemType : uint8
 {

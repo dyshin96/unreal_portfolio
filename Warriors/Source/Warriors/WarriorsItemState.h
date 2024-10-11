@@ -10,6 +10,6 @@ struct FWarriorsItemState
 {
 	GENERATED_BODY()
 
-	EItemType ItemType = EItemType::None;
-	bool bHolding = false;
+	int32 EquipItemIndex = 0;
+	EItemType EquipItemType = EItemType::None;
 };

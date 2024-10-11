@@ -52,6 +52,14 @@ class AWarriorsCharacter : public ACharacter
 	UInputAction* LookAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	UInputAction* InteractionAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	UInputAction* SwapItemByWheelAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	UInputAction* SwapItemToFirstAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	UInputAction* SwapItemToSecondAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	UInputAction* UnEquipItemAction;
 private:
 #pragma region locomotion
 	FWarriorsLocomotionState LocomotionState;
@@ -75,15 +83,17 @@ private:
 	UPROPERTY()
 	TArray<AItem*> DetectedItems;
 	UPROPERTY()
-	AItem* EquippedItem;
+	TArray<AItem*> GainedItem;
 
 	UPROPERTY()
 	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
-	void EquipItem(AItem* Item);
-	bool IsCanEquip(AItem* Item);
+	void Gaintem(AItem* Item);
+	bool IsCanGain(AItem* Item);
+	void EquipItem(int32 Index);
+	void UnEquipItem();
 	void SetInputDirection(FVector NewInputDirection);
 	void SetTargetYawAngle(const float TargetYawAngle);
 	void DetectInteractionObject();
@@ -112,8 +122,11 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 			
-	void Interaction(const FInputActionValue& Value);
-
+	void OnInteraction(const FInputActionValue& Value);
+	void OnSwapItemByWheel(const FInputActionValue& Value);
+	void OnSwapItemToFirst(const FInputActionValue& Value);
+	void OnSwapItemToSecond(const FInputActionValue& Value);
+	void OnUnEquipItem(const FInputActionValue& Value);
 	bool SaveSkeletalMeshThumbnailToDisk(class USkeletalMesh* SkeletalMesh, const FString& SavePath);
 protected:
 	// APawn interface

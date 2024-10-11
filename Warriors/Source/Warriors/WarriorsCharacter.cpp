@@ -123,16 +123,16 @@ void AWarriorsCharacter::DetectInteractionObject()
 	DetectedItems = Items;
 }
 
-void AWarriorsCharacter::EquipItem(AItem* InEquipItem)
+void AWarriorsCharacter::Gaintem(AItem* InGainItem)
 {
-	if (!IsCanEquip(InEquipItem))
+	if (!IsCanGain(InGainItem))
 	{
 		return;
 	}
 
 	//아이템 획득 로직 처리, 소켓에 액터를 스폰해서 착용할 수 있도록 구현해야한다.
 	AItem* SpawnItem = GetWorld()->SpawnActor<AItem>(AItem::StaticClass(), GetActorLocation(), GetActorRotation());
-	SpawnItem->InitializeItem(InEquipItem->GetItemType(), InEquipItem->GetItemName());
+	SpawnItem->InitializeItem(InGainItem->GetItemType(), InGainItem->GetItemName());
 	EItemType ItemType = SpawnItem->GetItemType();
 	const USkeletalMeshSocket* MeshSocket = GetMesh()->GetSocketByName(FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemType))));
 	if (IsValid(MeshSocket))
@@ -142,8 +142,7 @@ void AWarriorsCharacter::EquipItem(AItem* InEquipItem)
 			MeshSocket->AttachActor(SpawnItem, GetMesh());
 		}
 	}
-	EquippedItem = SpawnItem;
-	ItemState.ItemType = EquippedItem->GetItemType();
+	GainedItem.Add(SpawnItem);
 }
 
 void AWarriorsCharacter::SetInputDirection(FVector NewInputDirection)
@@ -435,14 +434,15 @@ void AWarriorsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::Move);
-
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::Look);
-
-		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::Interaction);
+		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnInteraction);
+		EnhancedInputComponent->BindAction(SwapItemByWheelAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnSwapItemByWheel);
+		EnhancedInputComponent->BindAction(SwapItemToFirstAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnSwapItemToFirst);
+		EnhancedInputComponent->BindAction(SwapItemToSecondAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnSwapItemToSecond);
+		EnhancedInputComponent->BindAction(UnEquipItemAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnUnEquipItem);
 	}
 	else
 	{
@@ -486,7 +486,7 @@ void AWarriorsCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void AWarriorsCharacter::Interaction(const FInputActionValue& Value)
+void AWarriorsCharacter::OnInteraction(const FInputActionValue& Value)
 {
 	bool bPress = Value.Get<bool>();
 	if (bPress)
@@ -514,23 +514,85 @@ void AWarriorsCharacter::Interaction(const FInputActionValue& Value)
 
 			if (IsValid(NearestItem))
 			{
-				EquipItem(NearestItem);
+				Gaintem(NearestItem);
 			}
 		}
 	}
 }
 
-bool AWarriorsCharacter::IsCanEquip(AItem* Item)
+void AWarriorsCharacter::OnSwapItemByWheel(const FInputActionValue& Value)
 {
-	if (IsValid(EquippedItem))
+	float WheelAxis = Value.Get<float>();
+	
+	// #todo 애니메이션 쿨타임이 필요
+	int32 Index = (ItemState.EquipItemIndex + int32(WheelAxis)) % (MaxGainedItemCount + 1);
+	EquipItem(Index);
+}
+
+void AWarriorsCharacter::OnSwapItemToFirst(const FInputActionValue& Value)
+{
+	if (bool bPress = Value.Get<bool>())
 	{
-		if (EquippedItem->GetItemName() == Item->GetItemName())
+		EquipItem(0);
+	}
+}
+
+void AWarriorsCharacter::OnSwapItemToSecond(const FInputActionValue& Value)
+{
+	if (bool bPress = Value.Get<bool>())
+	{
+		EquipItem(1);
+	}
+}
+
+void AWarriorsCharacter::OnUnEquipItem(const FInputActionValue& Value)
+{
+	if (bool bPress = Value.Get<bool>())
+	{
+		UnEquipItem();
+	}
+}
+
+bool AWarriorsCharacter::IsCanGain(AItem* Item)
+{
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+
+	if (GainedItem.Num() > 0)
+	{
+		int32 FindIndex = GainedItem.IndexOfByPredicate([Item](const AItem* ItemIter){ return ItemIter->GetItemName() == Item->GetItemName(); });
+		if (FindIndex != INDEX_NONE)
 		{
 			return false;
 		}
 	}
+
+	if (GainedItem.Num() > MaxGainedItemCount)
+	{
+		return false;
+	}
 	
 	return true;
+}
+
+void AWarriorsCharacter::EquipItem(int32 Index)
+{
+	if (!GainedItem.IsValidIndex(Index))
+	{
+		UnEquipItem();
+		return;
+	}
+
+	ItemState.EquipItemIndex = Index;
+	ItemState.EquipItemType = GainedItem[Index]->GetItemType();
+}
+
+void AWarriorsCharacter::UnEquipItem()
+{
+	ItemState.EquipItemIndex = MaxGainedItemCount;
+	ItemState.EquipItemType = EItemType::None;
 }
 
 bool AWarriorsCharacter::SaveSkeletalMeshThumbnailToDisk(USkeletalMesh* SkeletalMesh, const FString& SavePath)
