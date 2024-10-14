@@ -7,8 +7,8 @@ struct FWarriorsItemSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Warriors")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	TObjectPtr<UAnimSequenceBase> TwoHandedSwordDrawSequence;
-	UPROPERTY(EditAnyWhere, Category = "Warriors");
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Warriors");
 	float TwoHanedSwordDrawDefaultPlayRate = 1.5f;
 };

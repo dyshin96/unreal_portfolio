@@ -54,6 +54,28 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	}
 
 	Gait = Character->GetGait();
+
+	if (Settings)
+	{
+		FWarriorsItemState PreviousItemState = ItemState;
+		FWarriorsItemState CurrentItemState = Character->GetItemState();
+
+		if (PreviousItemState.EquipItemType != CurrentItemState.EquipItemType)
+		{
+			if (CurrentItemState.EquipItemType == EItemType::None)
+			{
+				//몽타주 역재생
+				float MontageLength = Settings->ItemSettings.TwoHandedSwordDrawSequence->GetPlayLength();
+				UAnimMontage* CurrentMontage = PlaySlotAnimationAsDynamicMontage(Settings->ItemSettings.TwoHandedSwordDrawSequence, UWarriorsConstants::UpperBodySlotName(), 0.25f, 0.25f, -Settings->ItemSettings.TwoHanedSwordDrawDefaultPlayRate);
+				Montage_SetPosition(CurrentMontage, MontageLength);
+			}
+			else
+			{
+				PlaySlotAnimationAsDynamicMontage(Settings->ItemSettings.TwoHandedSwordDrawSequence, UWarriorsConstants::UpperBodySlotName(), 0.25f, 0.25f, Settings->ItemSettings.TwoHanedSwordDrawDefaultPlayRate);
+			}
+		}
+	}
+
 	RefreshItemState();
 	RefreshViewOnGameThread();
 	RefreshLocomotionOnGameThread();
@@ -162,16 +184,6 @@ void UWarriorsAnimInstance::RefreshItemState()
 	FWarriorsItemState PreviousItemState = ItemState;
 	FWarriorsItemState CurrentItemState = Character->GetItemState();
 	ItemState = CurrentItemState;
-
-	if (ItemState.EquipItemType != PreviousItemState.EquipItemType)
-	{
-		if (ItemState.EquipItemType == EItemType::TwoHandedSword)
-		{
-			PlaySlotAnimationAsDynamicMontage(Settings->ItemSettings.TwoHandedSwordDrawSequence, UWarriorsConstants::ItemSlotName(), Settings->ItemSettings.TwoHanedSwordDrawDefaultPlayRate);
-		}
-	}
-
-	ItemState.SwapAnimationBlendAmount = ItemState.ItemSwapCoolTime > 0.0f ? 1.0f : 0.0f;
 }
 
 void UWarriorsAnimInstance::RefreshGroundedMovement()
@@ -256,7 +268,6 @@ void UWarriorsAnimInstance::RefreshFeet(const float DeltaTime)
 
 	//로컬 좌표계에서의 Transform 
 	const auto ComponentTransformInverse{GetProxyOnAnyThread<FAnimInstanceProxy>().GetComponentTransform().Inverse()};
-
 	RefreshFoot(FeetState.Left, UWarriorsConstants::FootLeftIkCurveName(), UWarriorsConstants::FootLeftLockCurveName(), ComponentTransformInverse, DeltaTime);
 	RefreshFoot(FeetState.Right, UWarriorsConstants::FootRightIkCurveName(), UWarriorsConstants::FootRightLockCurveName(), ComponentTransformInverse, DeltaTime);
 }

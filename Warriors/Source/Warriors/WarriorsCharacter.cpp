@@ -22,6 +22,10 @@
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
+const FString ItemGainedString = TEXT("Gained");
+const FString ItemEquippedStirng = TEXT("Equipped");
+
+
 //////////////////////////////////////////////////////////////////////////
 // AWarriorsCharacter
 
@@ -135,7 +139,8 @@ void AWarriorsCharacter::Gaintem(AItem* InGainItem)
 	AItem* SpawnItem = GetWorld()->SpawnActor<AItem>(AItem::StaticClass(), GetActorLocation(), GetActorRotation());
 	SpawnItem->InitializeItem(InGainItem->GetItemType(), InGainItem->GetItemName());
 	EItemType ItemType = SpawnItem->GetItemType();
-	const USkeletalMeshSocket* MeshSocket = GetMesh()->GetSocketByName(FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemType))));
+	FName ItemSocketGainedName = FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemType)) + ItemGainedString);
+	const USkeletalMeshSocket* MeshSocket = GetMesh()->GetSocketByName(ItemSocketGainedName);
 	if (IsValid(MeshSocket))
 	{
 		if (SpawnItem->GetRootComponent())
@@ -175,6 +180,49 @@ void AWarriorsCharacter::RefreshItem(const float DeltaTime)
 	{
 		ItemState.ItemSwapCoolTime -= DeltaTime;
 		ItemState.ItemSwapCoolTime = FMath::Max(ItemState.ItemSwapCoolTime, 0.0f);
+	}
+
+	float CurveValue = GetMesh()->GetAnimInstance()->GetCurveValue(UWarriorsConstants::EquipItem());
+	if (CurveValue > 1.9f)
+	{
+		if (GainedItem.IsValidIndex(ItemState.EquipItemIndex))
+		{
+			AItem* EquipedItem = GainedItem[ItemState.EquipItemIndex];
+			if (ensure(IsValid(EquipedItem)))
+			{
+				FName SocketName = EquipedItem->GetAttachParentSocketName();
+				FName ItemEquippedName = FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(EquipedItem->GetItemType())) + ItemEquippedStirng);
+				if (SocketName != ItemEquippedName)
+				{
+					const USkeletalMeshSocket* EquipItemSocket = GetMesh()->GetSocketByName(ItemEquippedName);
+					if (IsValid(EquipItemSocket))
+					{
+						EquipItemSocket->AttachActor(EquipedItem, GetMesh());
+					}
+				}
+			}
+		}
+	}
+	else if (CurveValue > 1.2f)
+	{
+		if (!GainedItem.IsValidIndex(ItemState.EquipItemIndex))
+		{
+			if (IsValid(PreviousEquippedItem))
+			{
+				FName SocketName = PreviousEquippedItem->GetAttachParentSocketName();
+				FName ItemEquippedName = FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(PreviousEquippedItem->GetItemType())) + ItemGainedString);
+				if (SocketName != ItemEquippedName)
+				{
+					const USkeletalMeshSocket* GainedItemSocket = GetMesh()->GetSocketByName(ItemEquippedName);
+					if (IsValid(GainedItemSocket))
+					{
+						GainedItemSocket->AttachActor(PreviousEquippedItem, GetMesh());
+					}
+				}
+
+				PreviousEquippedItem = nullptr;
+			}
+		}
 	}
 }
 
@@ -601,6 +649,10 @@ void AWarriorsCharacter::EquipItem(int32 Index)
 
 void AWarriorsCharacter::UnEquipItem()
 {
+	if(GainedItem.IsValidIndex(ItemState.EquipItemIndex))
+	{
+		PreviousEquippedItem = GainedItem[ItemState.EquipItemIndex];
+	}
 	ItemState.EquipItemIndex = MaxGainedItemCount;
 	ItemState.EquipItemType = EItemType::None;
 }

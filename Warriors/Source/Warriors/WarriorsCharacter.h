@@ -84,7 +84,8 @@ private:
 	TArray<AItem*> DetectedItems;
 	UPROPERTY()
 	TArray<AItem*> GainedItem;
-
+	UPROPERTY()
+	AItem* PreviousEquippedItem;
 	UPROPERTY()
 	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
 public:

@@ -12,7 +12,7 @@ class UWarriorsConstants : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Slot Name"))
-	static const FName& ItemSlotName();
+	static const FName& UpperBodySlotName();
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Slot Name"))
 	static const FName& TurnInPlaceStandingSlotName();
 
@@ -56,12 +56,14 @@ public:
 	static const FName& RotationYawSpeedCurveName();
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName & RotationYawOffsetCurveName();
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName & EquipItem();
 };
 
 
-inline const FName& UWarriorsConstants::ItemSlotName()
+inline const FName& UWarriorsConstants::UpperBodySlotName()
 {
-	static const FName SlotName(TEXT("Item"));
+	static const FName SlotName(TEXT("UpperBody"));
 	return SlotName;
 }
 
@@ -176,5 +178,11 @@ inline const FName& UWarriorsConstants::RotationYawSpeedCurveName()
 inline const FName& UWarriorsConstants::RotationYawOffsetCurveName()
 {
 	static const FName Name{ TEXTVIEW("RotationYawOffset") };
+	return Name;
+}
+
+inline const FName& UWarriorsConstants::EquipItem()
+{
+	static const FName Name{ TEXTVIEW("EquipItem")};
 	return Name;
 }
