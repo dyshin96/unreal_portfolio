@@ -183,7 +183,7 @@ void AWarriorsCharacter::RefreshItem(const float DeltaTime)
 	}
 
 	float CurveValue = GetMesh()->GetAnimInstance()->GetCurveValue(UWarriorsConstants::EquipItem());
-	if (CurveValue > 1.9f)
+	if (FMath::IsNearlyEqual(CurveValue, 2.0f))
 	{
 		if (GainedItem.IsValidIndex(ItemState.EquipItemIndex))
 		{
@@ -203,7 +203,7 @@ void AWarriorsCharacter::RefreshItem(const float DeltaTime)
 			}
 		}
 	}
-	else if (CurveValue > 1.2f)
+	else if (FMath::IsNearlyEqual(CurveValue, -1.0f))
 	{
 		if (!GainedItem.IsValidIndex(ItemState.EquipItemIndex))
 		{
