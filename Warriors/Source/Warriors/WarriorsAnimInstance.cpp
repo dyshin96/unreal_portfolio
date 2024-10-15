@@ -65,13 +65,14 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 			if (CurrentItemState.EquipItemType == EItemType::None)
 			{
 				//根鸥林 开犁积
-				float MontageLength = Settings->ItemSettings.TwoHandedSwordDrawSequence->GetPlayLength();
-				UAnimMontage* CurrentMontage = PlaySlotAnimationAsDynamicMontage(Settings->ItemSettings.TwoHandedSwordDrawSequence, UWarriorsConstants::UpperBodySlotName(), 0.25f, 0.25f, -Settings->ItemSettings.TwoHanedSwordDrawDefaultPlayRate);
-				Montage_SetPosition(CurrentMontage, MontageLength);
+				float MontageLength = Settings->ItemSettings.DrawSwordMontage->GetPlayLength();
+				UAnimMontage* Montage = Settings->ItemSettings.DrawSwordMontage;
+				Montage_Play(Montage, -Settings->ItemSettings.DrawSwordMontagePlayRate);
+				Montage_SetPosition(Montage, MontageLength);
 			}
 			else
 			{
-				PlaySlotAnimationAsDynamicMontage(Settings->ItemSettings.TwoHandedSwordDrawSequence, UWarriorsConstants::UpperBodySlotName(), 0.25f, 0.25f, Settings->ItemSettings.TwoHanedSwordDrawDefaultPlayRate);
+				Montage_Play(Settings->ItemSettings.DrawSwordMontage, Settings->ItemSettings.DrawSwordMontagePlayRate);
 			}
 		}
 	}
