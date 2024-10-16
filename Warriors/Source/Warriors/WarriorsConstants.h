@@ -58,6 +58,8 @@ public:
 	static const FName & RotationYawOffsetCurveName();
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName & EquipItem();
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName & AttackItem();
 };
 
 
@@ -184,5 +186,11 @@ inline const FName& UWarriorsConstants::RotationYawOffsetCurveName()
 inline const FName& UWarriorsConstants::EquipItem()
 {
 	static const FName Name{ TEXTVIEW("EquipItem")};
+	return Name;
+}
+
+inline const FName& UWarriorsConstants::AttackItem()
+{
+	static const FName Name{ TEXTVIEW("AttackItem")};
 	return Name;
 }

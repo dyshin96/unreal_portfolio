@@ -9,6 +9,8 @@ struct FWarriorsItemSettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	TObjectPtr<UAnimMontage> DrawSwordMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	TObjectPtr<UAnimMontage> ComboAttackMontage;
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Warriors");
 	float DrawSwordMontagePlayRate = 1.5f;
 };

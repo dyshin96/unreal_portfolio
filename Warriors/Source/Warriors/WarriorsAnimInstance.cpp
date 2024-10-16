@@ -12,6 +12,19 @@ void UWarriorsAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 	Character = Cast<AWarriorsCharacter>(GetOwningActor());
+	if (IsValid(Character))
+	{
+		Character->PressComboAttack.AddWeakLambda(this, [this]() {
+			if (IsValid(Character))
+			{
+				bool bAttack = Character->GetItemState().ItemSwapCoolTime <= 0.0f && IsCanPlayAttackAnimation();
+				if (bAttack)
+				{
+					PlayAttackAnimation();
+				}
+			}
+		});
+	}
 }
 
 void UWarriorsAnimInstance::NativeBeginPlay()
@@ -673,6 +686,19 @@ void UWarriorsAnimInstance::RefreshDynamicTransitions()
 	}
 }
 
+void UWarriorsAnimInstance::AnimNotify_ComboPossible()
+{
+	Character->SetComboPossible(true);
+}
+
+void UWarriorsAnimInstance::AnimNotify_ComboSection()
+{
+	if (!ItemState.bComboPressed)
+	{
+		Montage_Pause(Settings->ItemSettings.ComboAttackMontage);
+	}
+}
+
 bool UWarriorsAnimInstance::IsRotateInPlaceAllowed()
 {
 	return RotationMode == WarriorsRotationModeTags::Aiming;
@@ -1001,4 +1027,33 @@ void UWarriorsAnimInstance::StopTransitionAndTurnInPlaceAnimations(const float B
 	{
 		StopQueuedTransitionAndTurnInPlaceAnimations();
 	}
+}
+
+void UWarriorsAnimInstance::PlayAttackAnimation()
+{
+	if (IsValid(Settings->ItemSettings.ComboAttackMontage))
+	{
+		if (IsPlayingSlotAnimation(Settings->ItemSettings.ComboAttackMontage, UWarriorsConstants::AttackItem()))
+		{
+			Montage_Resume(Settings->ItemSettings.ComboAttackMontage);
+		}
+		else
+		{
+			Montage_Play(Settings->ItemSettings.ComboAttackMontage, Settings->ItemSettings.ComboAttackMontage->GetPlayLength());
+		}
+	}
+}
+
+bool UWarriorsAnimInstance::IsCanPlayAttackAnimation()
+{
+	if (IsValid(Settings->ItemSettings.ComboAttackMontage))
+	{
+		return !IsPlayingSlotAnimation(Settings->ItemSettings.ComboAttackMontage ,UWarriorsConstants::AttackItem());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Attack Montage is not Valid"));
+	}
+
+	return false;
 }

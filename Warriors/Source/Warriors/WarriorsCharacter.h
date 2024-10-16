@@ -60,6 +60,8 @@ class AWarriorsCharacter : public ACharacter
 	UInputAction* SwapItemToSecondAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	UInputAction* UnEquipItemAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	UInputAction* ComboAttackAction;
 private:
 #pragma region locomotion
 	FWarriorsLocomotionState LocomotionState;
@@ -90,6 +92,7 @@ private:
 	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
+	void SetComboPossible(bool bComboPossible);
 private:
 	void Gaintem(AItem* Item);
 	bool IsCanGain(AItem* Item);
@@ -129,6 +132,7 @@ protected:
 	void OnSwapItemToFirst(const FInputActionValue& Value);
 	void OnSwapItemToSecond(const FInputActionValue& Value);
 	void OnUnEquipItem(const FInputActionValue& Value);
+	void OnComboAttack(const FInputActionValue& Value);
 	bool SaveSkeletalMeshThumbnailToDisk(class USkeletalMesh* SkeletalMesh, const FString& SavePath);
 protected:
 	// APawn interface
@@ -139,6 +143,8 @@ protected:
 	virtual void PostRegisterAllComponents() override;
 	virtual void Tick(float DeltaTime) override;
 public:
+	FSimpleMulticastDelegate PressComboAttack;
+
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FWarriorsLocomotionState GetLocomotionState() const { return LocomotionState; }
@@ -146,5 +152,6 @@ public:
 	FWarriorsItemState GetItemState() const {return ItemState; }
 	UWarriorsMovementSettings* GetWarriorsMovementSettings() const;
 	FGameplayTag GetGait() const { return Gait; };
+	AItem* GetEquippedItem() const;
 };
 

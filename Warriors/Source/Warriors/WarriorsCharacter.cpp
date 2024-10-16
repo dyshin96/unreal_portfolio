@@ -10,6 +10,7 @@
 #include "WarriorsMovementSettings.h"
 #include "WarriorsCharacterMovementComponent.h"
 #include "WarriorsConstants.h"
+#include "WarriorsAnimInstance.h"
 #include "WarriorsGamePlayTags.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -430,6 +431,11 @@ void AWarriorsCharacter::SetGait(const FGameplayTag& NewGait)
 	}
 }
 
+void AWarriorsCharacter::SetComboPossible(bool bComboPossible)
+{
+	ItemState.bComboPossible = bComboPossible;
+}
+
 void AWarriorsCharacter::OnGaitChanged_Implementation(const FGameplayTag& PreviousGait) {}
 
 FGameplayTag AWarriorsCharacter::CalculateMaxAllowedGait() const
@@ -501,6 +507,7 @@ void AWarriorsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(SwapItemToFirstAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnSwapItemToFirst);
 		EnhancedInputComponent->BindAction(SwapItemToSecondAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnSwapItemToSecond);
 		EnhancedInputComponent->BindAction(UnEquipItemAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnUnEquipItem);
+		EnhancedInputComponent->BindAction(ComboAttackAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnComboAttack);
 	}
 	else
 	{
@@ -611,6 +618,14 @@ void AWarriorsCharacter::OnUnEquipItem(const FInputActionValue& Value)
 	}
 }
 
+void AWarriorsCharacter::OnComboAttack(const FInputActionValue& Value)
+{
+	if (bool bPress = Value.Get<bool>())
+	{
+		PressComboAttack.Broadcast();
+	}
+}
+
 bool AWarriorsCharacter::IsCanGain(AItem* Item)
 {
 	if (!IsValid(Item))
@@ -640,11 +655,13 @@ void AWarriorsCharacter::EquipItem(int32 Index)
 	if (!GainedItem.IsValidIndex(Index))
 	{
 		UnEquipItem();
+		ItemState.ItemComboCoolTime = 0.0f;
 		return;
 	}
 	ItemState.ItemSwapCoolTime = ItemSwapCoolTime;
 	ItemState.EquipItemIndex = Index;
 	ItemState.EquipItemType = GainedItem[Index]->GetItemType();
+	ItemState.ItemComboCoolTime = 0.0f;
 }
 
 void AWarriorsCharacter::UnEquipItem()
@@ -702,4 +719,9 @@ bool AWarriorsCharacter::SaveSkeletalMeshThumbnailToDisk(USkeletalMesh* Skeletal
 UWarriorsMovementSettings* AWarriorsCharacter::GetWarriorsMovementSettings() const
 {
 	return WarriorsMovementSettings.Get();
+}
+
+AItem* AWarriorsCharacter::GetEquippedItem() const
+{
+	return GainedItem.IsValidIndex(ItemState.EquipItemIndex) ? GainedItem[ItemState.EquipItemIndex] : nullptr;
 }

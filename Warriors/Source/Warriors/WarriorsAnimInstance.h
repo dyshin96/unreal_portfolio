@@ -35,6 +35,10 @@ protected:
 public:
 	virtual void NativePostUpdateAnimation();
 private:
+	UFUNCTION()
+	void AnimNotify_ComboPossible();
+	UFUNCTION()
+	void AnimNotify_ComboSection();
 	bool IsRotateInPlaceAllowed();
 	bool IsTurnInPlaceAllowed();
 	void RefreshLocomotionOnGameThread();
@@ -144,4 +148,7 @@ public:
 	                                  float StartTime = 0.0f, bool bFromStandingIdleOnly = false);
 	UFUNCTION(BlueprintCallable, Category = "ALS|Animation Instance", Meta = (BlueprintThreadSafe))
 	void StopTransitionAndTurnInPlaceAnimations(float BlendOutDuration = 0.2f);
+
+	void PlayAttackAnimation();
+	bool IsCanPlayAttackAnimation();
 };
