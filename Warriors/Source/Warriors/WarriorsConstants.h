@@ -191,6 +191,6 @@ inline const FName& UWarriorsConstants::EquipItem()
 
 inline const FName& UWarriorsConstants::AttackItem()
 {
-	static const FName Name{ TEXTVIEW("AttackItem")};
+	static const FName Name{ TEXTVIEW("ComboAttack")};
 	return Name;
 }

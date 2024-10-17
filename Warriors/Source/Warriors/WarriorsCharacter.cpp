@@ -622,6 +622,11 @@ void AWarriorsCharacter::OnComboAttack(const FInputActionValue& Value)
 {
 	if (bool bPress = Value.Get<bool>())
 	{
+		if (ItemState.bComboPossible)
+		{
+			ItemState.bComboPressed = true;
+			ItemState.bComboPossible = false;
+		}
 		PressComboAttack.Broadcast();
 	}
 }

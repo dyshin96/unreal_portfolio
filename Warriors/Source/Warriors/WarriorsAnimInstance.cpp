@@ -695,7 +695,7 @@ void UWarriorsAnimInstance::AnimNotify_ComboSection()
 {
 	if (!ItemState.bComboPressed)
 	{
-		Montage_Pause(Settings->ItemSettings.ComboAttackMontage);
+		Montage_Stop(0.25f, Settings->ItemSettings.ComboAttackMontage);
 	}
 }
 
@@ -1039,7 +1039,7 @@ void UWarriorsAnimInstance::PlayAttackAnimation()
 		}
 		else
 		{
-			Montage_Play(Settings->ItemSettings.ComboAttackMontage, Settings->ItemSettings.ComboAttackMontage->GetPlayLength());
+			Montage_Play(Settings->ItemSettings.ComboAttackMontage, 1.0f/*Settings->ItemSettings.ComboAttackMontage->GetPlayLength()*/);
 		}
 	}
 }
@@ -1048,7 +1048,7 @@ bool UWarriorsAnimInstance::IsCanPlayAttackAnimation()
 {
 	if (IsValid(Settings->ItemSettings.ComboAttackMontage))
 	{
-		return !IsPlayingSlotAnimation(Settings->ItemSettings.ComboAttackMontage ,UWarriorsConstants::AttackItem());
+		return !IsSlotActive(UWarriorsConstants::AttackItem());
 	}
 	else
 	{
