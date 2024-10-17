@@ -39,6 +39,8 @@ private:
 	void AnimNotify_ComboPossible();
 	UFUNCTION()
 	void AnimNotify_ComboSection();
+	UFUNCTION()
+	void AnimNotify_AttackEnd();
 	bool IsRotateInPlaceAllowed();
 	bool IsTurnInPlaceAllowed();
 	void RefreshLocomotionOnGameThread();
