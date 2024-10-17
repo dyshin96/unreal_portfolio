@@ -431,11 +431,6 @@ void AWarriorsCharacter::SetGait(const FGameplayTag& NewGait)
 	}
 }
 
-void AWarriorsCharacter::SetComboPossible(bool bComboPossible)
-{
-	ItemState.bComboPossible = bComboPossible;
-}
-
 void AWarriorsCharacter::OnGaitChanged_Implementation(const FGameplayTag& PreviousGait) {}
 
 FGameplayTag AWarriorsCharacter::CalculateMaxAllowedGait() const
@@ -507,7 +502,7 @@ void AWarriorsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(SwapItemToFirstAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnSwapItemToFirst);
 		EnhancedInputComponent->BindAction(SwapItemToSecondAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnSwapItemToSecond);
 		EnhancedInputComponent->BindAction(UnEquipItemAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnUnEquipItem);
-		EnhancedInputComponent->BindAction(ComboAttackAction, ETriggerEvent::Triggered, this, &AWarriorsCharacter::OnComboAttack);
+		EnhancedInputComponent->BindAction(ComboAttackAction, ETriggerEvent::Started, this, &AWarriorsCharacter::OnComboAttack);
 	}
 	else
 	{
@@ -622,11 +617,6 @@ void AWarriorsCharacter::OnComboAttack(const FInputActionValue& Value)
 {
 	if (bool bPress = Value.Get<bool>())
 	{
-		if (ItemState.bComboPossible)
-		{
-			ItemState.bComboPressed = true;
-			ItemState.bComboPossible = false;
-		}
 		PressComboAttack.Broadcast();
 	}
 }

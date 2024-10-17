@@ -14,6 +14,8 @@ AItem::AItem()
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
 	StaticMeshComponent->SetVisibility(true);
 	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+
 	RootComponent = StaticMeshComponent;
 	bForDisplayItem = false;
 }

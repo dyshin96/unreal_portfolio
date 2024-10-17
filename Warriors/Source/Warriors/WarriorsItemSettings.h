@@ -13,4 +13,6 @@ struct FWarriorsItemSettings
 	TObjectPtr<UAnimMontage> ComboAttackMontage;
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Warriors");
 	float DrawSwordMontagePlayRate = 1.5f;
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "Warriors");
+	float DefaultComboActivetime = 1.0f;
 };

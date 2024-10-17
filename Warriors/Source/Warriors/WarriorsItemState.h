@@ -21,9 +21,19 @@ struct FWarriorsItemState
 	float ItemComboCoolTime = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	int32 ComboIndex = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FWarriorsAnimationItemState
+{
+	GENERATED_BODY()
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	bool bComboPossible = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
 	bool bComboPressed = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	float ComboActiveTime = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warriors")
+	int32 ComboNum = 0;
 };
-

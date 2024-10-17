@@ -17,6 +17,12 @@ void UWarriorsAnimInstance::NativeInitializeAnimation()
 		Character->PressComboAttack.AddWeakLambda(this, [this]() {
 			if (IsValid(Character))
 			{
+				if (AnimItemState.bComboPossible)
+				{
+					AnimItemState.bComboPressed = true;
+					AnimItemState.bComboPossible = false;
+				}
+
 				bool bAttack = Character->GetItemState().ItemSwapCoolTime <= 0.0f && IsCanPlayAttackAnimation();
 				if (bAttack)
 				{
@@ -90,7 +96,7 @@ void UWarriorsAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		}
 	}
 
-	RefreshItemState();
+	RefreshItemState(DeltaTime);
 	RefreshViewOnGameThread();
 	RefreshLocomotionOnGameThread();
 	RefreshFeetOnGameThread();
@@ -188,7 +194,7 @@ void UWarriorsAnimInstance::RefreshStandingMovement()
 	StandingState.PlayRate = FMath::Clamp(WalkRunSprintSpeedAmount / StandingState.StrideBlendAmount, UE_KINDA_SMALL_NUMBER, 3.0f);
 }
 
-void UWarriorsAnimInstance::RefreshItemState()
+void UWarriorsAnimInstance::RefreshItemState(const float DeltaTime)
 {
 	if (!Settings)
 	{
@@ -198,6 +204,14 @@ void UWarriorsAnimInstance::RefreshItemState()
 	FWarriorsItemState PreviousItemState = ItemState;
 	FWarriorsItemState CurrentItemState = Character->GetItemState();
 	ItemState = CurrentItemState;
+	if (AnimItemState.ComboActiveTime > 0)
+	{
+		AnimItemState.ComboActiveTime -= DeltaTime;
+		if (AnimItemState.ComboActiveTime <= 0)
+		{
+			AnimItemState.ComboNum = INDEX_NONE;
+		}
+	}
 }
 
 void UWarriorsAnimInstance::RefreshGroundedMovement()
@@ -688,15 +702,23 @@ void UWarriorsAnimInstance::RefreshDynamicTransitions()
 
 void UWarriorsAnimInstance::AnimNotify_ComboPossible()
 {
-	Character->SetComboPossible(true);
+	AnimItemState.bComboPossible = true;
 }
 
 void UWarriorsAnimInstance::AnimNotify_ComboSection()
 {
-	if (!ItemState.bComboPressed)
+	if (IsValid(Settings))
 	{
-		Montage_Stop(0.25f, Settings->ItemSettings.ComboAttackMontage);
+		if (!AnimItemState.bComboPressed)
+		{
+			//#todo 현재 콤보 애니메이션에 대해서 수행하도록 Class 변수를 만들어서 관리해야합니다.
+			FName SectionName = Montage_GetCurrentSection(Settings->ItemSettings.ComboAttackMontage);
+			AnimItemState.ComboNum = Settings->ItemSettings.ComboAttackMontage->GetSectionIndex(SectionName);
+			Montage_StopGroupByName(0.25f, UWarriorsConstants::GroupNameAttack());
+			AnimItemState.ComboActiveTime = Settings->ItemSettings.DefaultComboActivetime;
+		}
 	}
+	AnimItemState.bComboPressed = false;
 }
 
 bool UWarriorsAnimInstance::IsRotateInPlaceAllowed()
@@ -1031,17 +1053,30 @@ void UWarriorsAnimInstance::StopTransitionAndTurnInPlaceAnimations(const float B
 
 void UWarriorsAnimInstance::PlayAttackAnimation()
 {
-	if (IsValid(Settings->ItemSettings.ComboAttackMontage))
+	UAnimMontage* ComboAttackMontage = Settings->ItemSettings.ComboAttackMontage;
+	if (IsValid(ComboAttackMontage))
 	{
-		if (IsPlayingSlotAnimation(Settings->ItemSettings.ComboAttackMontage, UWarriorsConstants::AttackItem()))
+		if (AnimItemState.ComboActiveTime > 0.0f)
 		{
-			Montage_Resume(Settings->ItemSettings.ComboAttackMontage);
+			AnimItemState.ComboActiveTime = -1.0f;
+			FName SectionName = ComboAttackMontage->GetSectionName(AnimItemState.ComboNum + 1);
+			if (SectionName != NAME_None)
+			{
+				Montage_Play(ComboAttackMontage, 1.0f);
+				Montage_JumpToSection(SectionName, ComboAttackMontage);
+			}
+			else
+			{
+				AnimItemState.ComboNum = 0;
+			}
 		}
 		else
 		{
-			Montage_Play(Settings->ItemSettings.ComboAttackMontage, 1.0f/*Settings->ItemSettings.ComboAttackMontage->GetPlayLength()*/);
+			Montage_Play(ComboAttackMontage, 1.0f);
 		}
 	}
+
+	AnimItemState.bComboPressed = false;
 }
 
 bool UWarriorsAnimInstance::IsCanPlayAttackAnimation()

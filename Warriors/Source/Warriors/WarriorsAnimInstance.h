@@ -74,7 +74,7 @@ protected:
 	void InitializeGrounded();
 
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
-	void RefreshItemState();
+	void RefreshItemState(const float DeltaTime);
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
 	void RefreshGroundedMovement();
 	UFUNCTION(BlueprintCallable, Category = "Warriors|Animation", Meta = (BlueprintThreadSafe))
@@ -121,6 +121,8 @@ public:
 	FWarriorsTurnInPlaceState TurnInPlaceState;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FWarriorsItemState ItemState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	FWarriorsAnimationItemState AnimItemState;
 
 	UPROPERTY(BlueprintReadOnly)
 	float ForwardVelocity;

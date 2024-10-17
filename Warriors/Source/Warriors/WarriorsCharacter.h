@@ -92,7 +92,6 @@ private:
 	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
-	void SetComboPossible(bool bComboPossible);
 private:
 	void Gaintem(AItem* Item);
 	bool IsCanGain(AItem* Item);
