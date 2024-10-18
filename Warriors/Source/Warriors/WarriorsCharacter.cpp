@@ -34,7 +34,7 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UWarriorsCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 98.0f);
+	GetCapsuleComponent()->InitCapsuleSize(32.f, 98.0f);
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
