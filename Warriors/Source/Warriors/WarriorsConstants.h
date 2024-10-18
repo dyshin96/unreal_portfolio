@@ -62,6 +62,8 @@ public:
 	static const FName & AttackItem();
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& GroupNameAttack();
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& AttackMovementSpeed();
 };
 
 
@@ -200,5 +202,11 @@ inline const FName& UWarriorsConstants::AttackItem()
 inline const FName& UWarriorsConstants::GroupNameAttack()
 {
 	static const FName Name{ TEXTVIEW("Attack") };
+	return Name;
+}
+
+inline const FName& UWarriorsConstants::AttackMovementSpeed()
+{
+	static const FName Name{ TEXTVIEW("AttackMovementSpeed") };
 	return Name;
 }

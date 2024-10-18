@@ -61,6 +61,8 @@ private:
 	void RefreshFootLock(float IkAmount, FWarriorsFootState& FootState, const FName& LockCurveName, const FTransform& ComponentTransformInverse, float DeltaTime) const;
 private:
 	UPROPERTY()
+	UAnimMontage* CurrentPlayAttackMontage = nullptr;
+	UPROPERTY()
 	class AWarriorsCharacter* Character;
 	FGameplayTag Gait;
 	FGameplayTag Stance = WarriorsStanceTags::Standing;
@@ -155,4 +157,5 @@ public:
 
 	void PlayAttackAnimation();
 	bool IsCanPlayAttackAnimation();
+	bool IsPlayingAttackAnimation();
 };

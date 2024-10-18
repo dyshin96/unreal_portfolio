@@ -9,11 +9,10 @@
 #include "WarriorsAnimInstanceProxy.h"
 
 static TAutoConsoleVariable<float> CVarComboAttackPlayRate(
-	TEXT("MyGame.ComboPlayRate"),     // 콘솔에서 사용할 변수 이름
-	2.0f,                             // 기본값
-	TEXT("Play rate for combo montage"), // 설명
-	ECVF_Cheat                        // 콘솔에서 실시간으로 변경 가능
-);
+	TEXT("ComboPlayRate"),     
+	1.7f,                           
+	TEXT("Play rate for combo montage"), 
+	ECVF_Cheat                      
 
 void UWarriorsAnimInstance::NativeInitializeAnimation()
 {
@@ -28,6 +27,11 @@ void UWarriorsAnimInstance::NativeInitializeAnimation()
 				{
 					AnimItemState.bComboPressed = true;
 					AnimItemState.bComboPossible = false;
+				}
+
+				if (ItemState.EquipItemType == EItemType::TwoHandedSword)
+				{
+					CurrentPlayAttackMontage = Settings->ItemSettings.TwoHandedComboAttackMontage;
 				}
 
 				bool bAttack = Character->GetItemState().ItemSwapCoolTime <= 0.0f && IsCanPlayAttackAnimation();
@@ -718,7 +722,7 @@ void UWarriorsAnimInstance::AnimNotify_ComboSection()
 	{
 		if (!AnimItemState.bComboPressed)
 		{
-			//#todo 현재 콤보 애니메이션에 대해서 수행하도록 Class 변수를 만들어서 관리해야합니다.
+			CurrentPlayAttackMontage = nullptr;
 			Montage_StopGroupByName(0.25f, UWarriorsConstants::GroupNameAttack());
 			AnimItemState.ComboActiveTime = Settings->ItemSettings.DefaultComboActivetime;
 		}
@@ -733,6 +737,7 @@ void UWarriorsAnimInstance::AnimNotify_ComboSection()
 void UWarriorsAnimInstance::AnimNotify_AttackEnd()
 {
 	AnimItemState.ComboNum = 0;
+	CurrentPlayAttackMontage = nullptr;
 }
 
 bool UWarriorsAnimInstance::IsRotateInPlaceAllowed()
@@ -1067,18 +1072,17 @@ void UWarriorsAnimInstance::StopTransitionAndTurnInPlaceAnimations(const float B
 
 void UWarriorsAnimInstance::PlayAttackAnimation()
 {
-	UAnimMontage* ComboAttackMontage = Settings->ItemSettings.ComboAttackMontage;
-	if (IsValid(ComboAttackMontage))
+	if (IsValid(CurrentPlayAttackMontage))
 	{
 		if (AnimItemState.ComboActiveTime > 0.0f)
 		{
 			AnimItemState.ComboActiveTime = -1.0f;
 			AnimItemState.ComboNum += 1;
-			FName SectionName = ComboAttackMontage->GetSectionName(AnimItemState.ComboNum);
+			FName SectionName = CurrentPlayAttackMontage->GetSectionName(AnimItemState.ComboNum);
 			if (SectionName != NAME_None)
 			{
-				Montage_Play(ComboAttackMontage, CVarComboAttackPlayRate.GetValueOnGameThread());
-				Montage_JumpToSection(SectionName, ComboAttackMontage);
+				Montage_Play(CurrentPlayAttackMontage, CVarComboAttackPlayRate.GetValueOnGameThread());
+				Montage_JumpToSection(SectionName, CurrentPlayAttackMontage);
 			}
 			else
 			{
@@ -1088,24 +1092,37 @@ void UWarriorsAnimInstance::PlayAttackAnimation()
 		else
 		{
 			AnimItemState.ComboNum = 0;
-			Montage_Play(ComboAttackMontage, CVarComboAttackPlayRate.GetValueOnGameThread());
+			Montage_Play(CurrentPlayAttackMontage, CVarComboAttackPlayRate.GetValueOnGameThread());
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("ComboNum : %d"), AnimItemState.ComboNum);
+	if (!Montage_IsPlaying(CurrentPlayAttackMontage))
+	{
+		CurrentPlayAttackMontage = nullptr;
+	}
 
 	AnimItemState.bComboPressed = false;
 }
 
 bool UWarriorsAnimInstance::IsCanPlayAttackAnimation()
 {
-	if (IsValid(Settings->ItemSettings.ComboAttackMontage))
+	if (IsValid(CurrentPlayAttackMontage))
 	{
-		return !IsSlotActive(UWarriorsConstants::AttackItem()) && !Montage_IsPlaying(Settings->ItemSettings.ComboAttackMontage) && Montage_GetIsStopped(Settings->ItemSettings.ComboAttackMontage);
+		return !IsSlotActive(UWarriorsConstants::AttackItem()) && !Montage_IsPlaying(CurrentPlayAttackMontage) && Montage_GetIsStopped(CurrentPlayAttackMontage);
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Attack Montage is not Valid"));
+	}
+
+	return false;
+}
+
+bool UWarriorsAnimInstance::IsPlayingAttackAnimation()
+{
+	if (IsValid(CurrentPlayAttackMontage))
+	{
+		return Montage_IsPlaying(CurrentPlayAttackMontage);
 	}
 
 	return false;

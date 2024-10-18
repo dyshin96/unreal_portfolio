@@ -100,6 +100,7 @@ private:
 	void SetInputDirection(FVector NewInputDirection);
 	void SetTargetYawAngle(const float TargetYawAngle);
 	void DetectInteractionObject();
+	void RefreshAttack(const float DeltaTime);
 	void RefreshViewState(const float DeltaTime);
 	void RefreshItem(const float DeltaTime);
 	void RefreshInput(const float DeltaTime);

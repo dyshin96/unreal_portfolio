@@ -76,6 +76,8 @@ void AWarriorsCharacter::PostRegisterAllComponents()
 void AWarriorsCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	RefreshAttack(DeltaTime);
 	DetectInteractionObject();
 	RefreshItem(DeltaTime);
 	RefreshInput(DeltaTime);
@@ -172,6 +174,22 @@ void AWarriorsCharacter::RefreshViewState(const float DeltaTime)
 	if (DeltaTime > UE_SMALL_NUMBER)
 	{
 		ViewState.YawSpeed = FMath::Abs(UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - ViewState.PreviousYawAngle)) / DeltaTime;
+	}
+}
+
+void AWarriorsCharacter::RefreshAttack(const float DeltaTime)
+{
+	UWarriorsAnimInstance* AnimInstance = Cast<UWarriorsAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance))
+	{
+		if (AnimInstance->IsPlayingAttackAnimation())
+		{
+			float AttackMovementSpeed = GetMesh()->GetAnimInstance()->GetCurveValue(UWarriorsConstants::AttackMovementSpeed());
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
+			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+			AddMovementInput(ForwardDirection, AttackMovementSpeed);
+		}
 	}
 }
 
@@ -527,9 +545,19 @@ void AWarriorsCharacter::Move(const FInputActionValue& Value)
 		// get right vector 
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-		AddMovementInput(RightDirection, MovementVector.X);
+		bool bPlayingAttackAnimation = false;
+		if (UWarriorsAnimInstance* AnimInstance = Cast<UWarriorsAnimInstance>(GetMesh()->GetAnimInstance()))
+		{
+			bPlayingAttackAnimation = AnimInstance->IsPlayingAttackAnimation();
+		}
+
+		if (!bPlayingAttackAnimation)
+		{
+			// add movement 
+			AddMovementInput(ForwardDirection, MovementVector.Y);
+			AddMovementInput(RightDirection, MovementVector.X);
+
+		}
 	}
 }
 
