@@ -12,7 +12,8 @@ static TAutoConsoleVariable<float> CVarComboAttackPlayRate(
 	TEXT("ComboPlayRate"),     
 	1.7f,                           
 	TEXT("Play rate for combo montage"), 
-	ECVF_Cheat                      
+	ECVF_Cheat                     
+);
 
 void UWarriorsAnimInstance::NativeInitializeAnimation()
 {
