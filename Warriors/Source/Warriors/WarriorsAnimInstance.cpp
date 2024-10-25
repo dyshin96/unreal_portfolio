@@ -1105,6 +1105,20 @@ void UWarriorsAnimInstance::PlayAttackAnimation()
 	AnimItemState.bComboPressed = false;
 }
 
+void UWarriorsAnimInstance::PlayDamagedAnimation()
+{
+	if (!IsValid(Settings))
+	{
+		return;
+	}
+
+	UAnimSequence* DefaultDamaged = Settings->DamagedSettings.DefaultDamagedAnim;
+	if (IsValid(DefaultDamaged))
+	{
+		PlaySlotAnimationAsDynamicMontage(DefaultDamaged, UWarriorsConstants::DamagedSlotName());
+	}
+}
+
 bool UWarriorsAnimInstance::IsCanPlayAttackAnimation()
 {
 	if (IsValid(CurrentPlayAttackMontage))

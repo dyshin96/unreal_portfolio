@@ -11,6 +11,7 @@
 #include "WarriorsRotateInPlaceSettings.h"
 #include "WarriorsTurnInPlaceSettings.h"
 #include "WarriorsItemSettings.h"
+#include "WarriorsDamagedSettings.h"
 #include "WarriorsAnimationInstanceSettings.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
@@ -37,4 +38,7 @@ public:
 	FWarriorsGeneralTurnInPlaceSettings TurnInPlaceSettings;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FWarriorsItemSettings ItemSettings;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FWarriorsDamagedSettings DamagedSettings;
+
 };

@@ -35,6 +35,9 @@ class AWarriorsCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 	
+	UPROPERTY(VisibleAnywhere, Category = Physics)
+	class UPhysicalAnimationComponent* PhysicalAnimationComponent;
+
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
@@ -81,6 +84,9 @@ private:
 	TObjectPtr<UWarriorsCharacterSettings> Settings;
 
 	FVector_NetQuantizeNormal InputDirection{ForceInit};
+
+	float CurrentDamagedCoolTimer = -1.0f;
+	float HitBlendValue = 1.0f;
 #pragma endregion 
 	UPROPERTY()
 	TArray<AItem*> DetectedItems;
@@ -90,6 +96,8 @@ private:
 	AItem* PreviousEquippedItem;
 	UPROPERTY()
 	class UWarriorsCharacterMovementComponent* WarriorsCharacterMovementComponent;
+	bool bActivatePhysicsSimulation;
+
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
@@ -116,9 +124,11 @@ private:
 	void SetGait(const FGameplayTag& NewGait);
 	FGameplayTag CalculateMaxAllowedGait() const;
 	FGameplayTag CalculateActualGait(const FGameplayTag& MaxAllowedGait) const;
-
+public:
+	void OnBeginOverlap(int32 InBodyIndex, FVector ImpluseDirection);
 protected:
-	UFUNCTION(BlueprintNativeEvent, Category = "Als Character")
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Warriors Character")
 	void OnGaitChanged(const FGameplayTag& PreviousGait);
 
 	/** Called for movement input */
@@ -144,7 +154,6 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 public:
 	FSimpleMulticastDelegate PressComboAttack;
-
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FWarriorsLocomotionState GetLocomotionState() const { return LocomotionState; }

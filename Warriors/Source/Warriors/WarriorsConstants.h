@@ -31,6 +31,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& TransitionSlotName();
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& DamagedSlotName();
+	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& AllowTransitionsCurveName();
 	UFUNCTION(BlueprintPure, Category = "Warriors|Constants|Animation Slots", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& FootPlantedCurveName();
@@ -106,6 +108,12 @@ inline const FName& UWarriorsConstants::FeetCrossingCurveName()
 inline const FName& UWarriorsConstants::TransitionSlotName()
 {
 	static const FName Name{ TEXTVIEW("Transition") };
+	return Name;
+}
+
+inline const FName& UWarriorsConstants::DamagedSlotName()
+{
+	static const FName Name{ TEXTVIEW("WarriorDamaged") };
 	return Name;
 }
 

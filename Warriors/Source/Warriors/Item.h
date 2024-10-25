@@ -28,7 +28,9 @@ public:
 	void InitializeItem(EItemType ItemType, FString ItemName);
 private:
 	void UpdateItemStaticMesh();
-
+	UFUNCTION()
+	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 public:
 	UPROPERTY(EditAnywhere)
 	bool bForDisplayItem;

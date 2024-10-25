@@ -63,6 +63,9 @@ private:
 	UPROPERTY()
 	UAnimMontage* CurrentPlayAttackMontage = nullptr;
 	UPROPERTY()
+	UAnimMontage* CurrentPlayDamagedAnimation = nullptr;
+
+	UPROPERTY()
 	class AWarriorsCharacter* Character;
 	FGameplayTag Gait;
 	FGameplayTag Stance = WarriorsStanceTags::Standing;
@@ -156,6 +159,8 @@ public:
 	void StopTransitionAndTurnInPlaceAnimations(float BlendOutDuration = 0.2f);
 
 	void PlayAttackAnimation();
+	void PlayDamagedAnimation();
+
 	bool IsCanPlayAttackAnimation();
 	bool IsPlayingAttackAnimation();
 };

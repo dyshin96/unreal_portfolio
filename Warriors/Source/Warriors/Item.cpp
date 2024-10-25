@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Item.h"
+#include "WarriorsCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/AssetManager.h"
@@ -15,7 +16,7 @@ AItem::AItem()
 	StaticMeshComponent->SetVisibility(true);
 	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-
+	StaticMeshComponent->OnComponentBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnBeginOverlap);
 	RootComponent = StaticMeshComponent;
 	bForDisplayItem = false;
 }
@@ -67,6 +68,16 @@ void AItem::UpdateItemStaticMesh()
 				}
 			}));
 		}
+	}
+}
+
+void AItem::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	AWarriorsCharacter* Character = Cast<AWarriorsCharacter>(OtherActor);
+	if (GetOwner() && GetOwner() != Character && IsValid(Character))
+	{
+		Character->OnBeginOverlap(OtherBodyIndex, StaticMeshComponent->GetForwardVector());
 	}
 }
 

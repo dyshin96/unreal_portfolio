@@ -7,6 +7,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "WarriorsMovementSettings.h"
 #include "WarriorsCharacterMovementComponent.h"
 #include "WarriorsConstants.h"
@@ -25,13 +26,14 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 const FString ItemGainedString = TEXT("Gained");
 const FString ItemEquippedStirng = TEXT("Equipped");
-
+const float DamagedDuration = 1.0f;
 
 //////////////////////////////////////////////////////////////////////////
 // AWarriorsCharacter
 
 AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UWarriorsCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
+	: Super(ObjectInitializer
+	.SetDefaultSubobjectClass<UWarriorsCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(32.f, 98.0f);
@@ -52,6 +54,12 @@ AWarriorsCharacter::AWarriorsCharacter(const FObjectInitializer& ObjectInitializ
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
+
+	GetMesh()->bMultiBodyOverlap = true;
+	GetMesh()->SetGenerateOverlapEvents(true);
+	GetMesh()->SetAllBodiesCollisionObjectType(ECC_PhysicsBody);
+
+	PhysicalAnimationComponent = CreateDefaultSubobject<UPhysicalAnimationComponent>(TEXT("PhysicalAnimationComponent"));
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -76,6 +84,21 @@ void AWarriorsCharacter::PostRegisterAllComponents()
 void AWarriorsCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (CurrentDamagedCoolTimer >= 0.0f)
+	{
+		CurrentDamagedCoolTimer += DeltaTime;
+		if (CurrentDamagedCoolTimer >= DamagedDuration)
+		{
+			CurrentDamagedCoolTimer = -1.0f;
+		}
+	}
+
+	if (HitBlendValue > 0.0f)
+	{
+		HitBlendValue -= DeltaTime;
+		GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(TEXT("spine_02"), HitBlendValue, false, true);
+	}
 
 	RefreshAttack(DeltaTime);
 	DetectInteractionObject();
@@ -139,7 +162,9 @@ void AWarriorsCharacter::Gaintem(AItem* InGainItem)
 	}
 
 	//아이템 획득 로직 처리, 소켓에 액터를 스폰해서 착용할 수 있도록 구현해야한다.
-	AItem* SpawnItem = GetWorld()->SpawnActor<AItem>(AItem::StaticClass(), GetActorLocation(), GetActorRotation());
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	AItem* SpawnItem = GetWorld()->SpawnActor<AItem>(AItem::StaticClass(), GetActorLocation(), GetActorRotation(), SpawnParams);
 	SpawnItem->InitializeItem(InGainItem->GetItemType(), InGainItem->GetItemName());
 	EItemType ItemType = SpawnItem->GetItemType();
 	FName ItemSocketGainedName = FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemType)) + ItemGainedString);
@@ -449,6 +474,45 @@ void AWarriorsCharacter::SetGait(const FGameplayTag& NewGait)
 	}
 }
 
+void AWarriorsCharacter::OnBeginOverlap(int32 InBodyIndex, FVector ImpluseDirection)
+{
+	UWarriorsAnimInstance* AnimInstance = Cast<UWarriorsAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance))
+	{
+		AnimInstance->PlayDamagedAnimation();
+	}
+
+	PhysicalAnimationComponent->SetSkeletalMeshComponent(GetMesh());
+
+	TArray<FName> UpperBodyBones = { "spine_01", "spine_02", "spine_03", "clavicle_l", "clavicle_r",
+	"upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "hand_l", "hand_r", "neck_01", "head" };
+
+	FName InBoneName = GetMesh()->GetBoneName(InBodyIndex);
+
+	if (UpperBodyBones.Contains(InBoneName))
+	{
+		if (CurrentDamagedCoolTimer < 0.0f && InBodyIndex != INDEX_NONE)
+		{
+			CurrentDamagedCoolTimer = 0.0f;
+		}
+		else
+		{
+			return;
+		}
+
+		HitBlendValue = 1.0f;
+		GetMesh()->SetSimulatePhysics(true);
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		PhysicalAnimationComponent->ApplyPhysicalAnimationProfileBelow(TEXT("spine_02"), TEXT("HitReaction"), true, true);
+		GetMesh()->SetAllBodiesBelowSimulatePhysics(TEXT("spine_02"), true, false);
+		GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(TEXT("spine_02"), HitBlendValue, false, true);
+
+		float ImpulseStrength = 500.0f;
+		FVector HitImpulse = ImpluseDirection * ImpulseStrength;
+		GetMesh()->AddImpulse(HitImpulse, InBoneName);
+	}
+}
+
 void AWarriorsCharacter::OnGaitChanged_Implementation(const FGameplayTag& PreviousGait) {}
 
 FGameplayTag AWarriorsCharacter::CalculateMaxAllowedGait() const
@@ -481,7 +545,6 @@ void AWarriorsCharacter::BeginPlay()
 	//SaveSkeletalMeshThumbnailToDisk();
 
 	WarriorsCharacterMovementComponent = Cast<UWarriorsCharacterMovementComponent>(GetCharacterMovement());
-
 	if (ensure(IsValid(Settings.Get())))
 	{
 	    Settings = NewObject<UWarriorsCharacterSettings>(this);
@@ -748,3 +811,4 @@ AItem* AWarriorsCharacter::GetEquippedItem() const
 {
 	return GainedItem.IsValidIndex(ItemState.EquipItemIndex) ? GainedItem[ItemState.EquipItemIndex] : nullptr;
 }
+
