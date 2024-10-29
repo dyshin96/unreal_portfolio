@@ -28,6 +28,13 @@ const FString ItemGainedString = TEXT("Gained");
 const FString ItemEquippedStirng = TEXT("Equipped");
 const float DamagedDuration = 1.0f;
 
+static TAutoConsoleVariable<float> CVarDamagedImpluseStrength(
+	TEXT("DamagedImpluseStrength"),
+	100000.0f,
+	TEXT(""),
+	ECVF_Cheat
+);
+
 //////////////////////////////////////////////////////////////////////////
 // AWarriorsCharacter
 
@@ -85,21 +92,13 @@ void AWarriorsCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (CurrentDamagedCoolTimer >= 0.0f)
-	{
-		CurrentDamagedCoolTimer += DeltaTime;
-		if (CurrentDamagedCoolTimer >= DamagedDuration)
-		{
-			CurrentDamagedCoolTimer = -1.0f;
-		}
-	}
-
 	if (HitBlendValue > 0.0f)
 	{
 		HitBlendValue -= DeltaTime;
 		GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(TEXT("spine_02"), HitBlendValue, false, true);
 	}
 
+	RefreshDamaged(DeltaTime);
 	RefreshAttack(DeltaTime);
 	DetectInteractionObject();
 	RefreshItem(DeltaTime);
@@ -165,15 +164,18 @@ void AWarriorsCharacter::Gaintem(AItem* InGainItem)
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;
 	AItem* SpawnItem = GetWorld()->SpawnActor<AItem>(AItem::StaticClass(), GetActorLocation(), GetActorRotation(), SpawnParams);
-	SpawnItem->InitializeItem(InGainItem->GetItemType(), InGainItem->GetItemName());
-	EItemType ItemType = SpawnItem->GetItemType();
-	FName ItemSocketGainedName = FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemType)) + ItemGainedString);
-	const USkeletalMeshSocket* MeshSocket = GetMesh()->GetSocketByName(ItemSocketGainedName);
-	if (IsValid(MeshSocket))
+	if (IsValid(SpawnItem))
 	{
-		if (SpawnItem->GetRootComponent())
+		SpawnItem->InitializeItem(InGainItem->GetItemType(), InGainItem->GetItemName());
+		EItemType ItemType = SpawnItem->GetItemType();
+		FName ItemSocketGainedName = FName(StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemType)) + ItemGainedString);
+		const USkeletalMeshSocket* MeshSocket = GetMesh()->GetSocketByName(ItemSocketGainedName);
+		if (IsValid(MeshSocket))
 		{
-			MeshSocket->AttachActor(SpawnItem, GetMesh());
+			if (SpawnItem->GetRootComponent())
+			{
+				MeshSocket->AttachActor(SpawnItem, GetMesh());
+			}
 		}
 	}
 	GainedItem.Add(SpawnItem);
@@ -199,6 +201,19 @@ void AWarriorsCharacter::RefreshViewState(const float DeltaTime)
 	if (DeltaTime > UE_SMALL_NUMBER)
 	{
 		ViewState.YawSpeed = FMath::Abs(UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - ViewState.PreviousYawAngle)) / DeltaTime;
+	}
+}
+
+void AWarriorsCharacter::RefreshDamaged(const float DeltaTime)
+{
+	UWarriorsAnimInstance* AnimInstance = Cast<UWarriorsAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance))
+	{
+		float DamagedMovementSpeed = GetMesh()->GetAnimInstance()->GetCurveValue(UWarriorsConstants::DamagedMovementSpeed());
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		AddMovementInput(-ForwardDirection, DamagedMovementSpeed);
 	}
 }
 
@@ -474,7 +489,7 @@ void AWarriorsCharacter::SetGait(const FGameplayTag& NewGait)
 	}
 }
 
-void AWarriorsCharacter::OnBeginOverlap(int32 InBodyIndex, FVector ImpluseDirection)
+void AWarriorsCharacter::OnBeginOverlap(int32 InBodyIndex, FVector ImpluseDirection, AItem* Item)
 {
 	UWarriorsAnimInstance* AnimInstance = Cast<UWarriorsAnimInstance>(GetMesh()->GetAnimInstance());
 	if (IsValid(AnimInstance))
@@ -484,32 +499,21 @@ void AWarriorsCharacter::OnBeginOverlap(int32 InBodyIndex, FVector ImpluseDirect
 
 	PhysicalAnimationComponent->SetSkeletalMeshComponent(GetMesh());
 
-	TArray<FName> UpperBodyBones = { "spine_01", "spine_02", "spine_03", "clavicle_l", "clavicle_r",
+	TArray<FName> UpperBodyBones = { "spine_01", "spine_02", "spine_03", "spine04", "spine05", "pelvis", "clavicle_l", "clavicle_r",
 	"upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "hand_l", "hand_r", "neck_01", "head" };
-
 	FName InBoneName = GetMesh()->GetBoneName(InBodyIndex);
-
-	if (UpperBodyBones.Contains(InBoneName))
+	if (UpperBodyBones.Contains(InBoneName) && InBodyIndex != INDEX_NONE)
 	{
-		if (CurrentDamagedCoolTimer < 0.0f && InBodyIndex != INDEX_NONE)
-		{
-			CurrentDamagedCoolTimer = 0.0f;
-		}
-		else
-		{
-			return;
-		}
-
 		HitBlendValue = 1.0f;
 		GetMesh()->SetSimulatePhysics(true);
 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		PhysicalAnimationComponent->ApplyPhysicalAnimationProfileBelow(TEXT("spine_02"), TEXT("HitReaction"), true, true);
 		GetMesh()->SetAllBodiesBelowSimulatePhysics(TEXT("spine_02"), true, false);
 		GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(TEXT("spine_02"), HitBlendValue, false, true);
-
-		float ImpulseStrength = 500.0f;
+		float ImpulseStrength = CVarDamagedImpluseStrength.GetValueOnGameThread();
 		FVector HitImpulse = ImpluseDirection * ImpulseStrength;
-		GetMesh()->AddImpulse(HitImpulse, InBoneName);
+		GetMesh()->AddImpulse(HitImpulse, TEXT("spine_05"));
+		Item->AddActivatePhysicsCharacter(this);
 	}
 }
 

@@ -85,7 +85,6 @@ private:
 
 	FVector_NetQuantizeNormal InputDirection{ForceInit};
 
-	float CurrentDamagedCoolTimer = -1.0f;
 	float HitBlendValue = 1.0f;
 #pragma endregion 
 	UPROPERTY()
@@ -108,6 +107,7 @@ private:
 	void SetInputDirection(FVector NewInputDirection);
 	void SetTargetYawAngle(const float TargetYawAngle);
 	void DetectInteractionObject();
+	void RefreshDamaged(const float DeltaTime);
 	void RefreshAttack(const float DeltaTime);
 	void RefreshViewState(const float DeltaTime);
 	void RefreshItem(const float DeltaTime);
@@ -125,7 +125,7 @@ private:
 	FGameplayTag CalculateMaxAllowedGait() const;
 	FGameplayTag CalculateActualGait(const FGameplayTag& MaxAllowedGait) const;
 public:
-	void OnBeginOverlap(int32 InBodyIndex, FVector ImpluseDirection);
+	void OnBeginOverlap(int32 InBodyIndex, FVector ImpluseDirection, class AItem* Item);
 protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Warriors Character")

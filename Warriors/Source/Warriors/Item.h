@@ -18,14 +18,12 @@ class AItem : public AActor
 public:
 	AItem();
 	virtual void BeginPlay() override;
-	
 	bool IsForDisplayItem();
-	
 	EItemType GetItemType() const { return ItemType; }
 	FString GetItemName() const {return ItemName; }
 	float GetHeight() const {return 0.0f; }
-
 	void InitializeItem(EItemType ItemType, FString ItemName);
+	void AddActivatePhysicsCharacter(class ACharacter* Character);
 private:
 	void UpdateItemStaticMesh();
 	UFUNCTION()
@@ -34,6 +32,9 @@ private:
 public:
 	UPROPERTY(EditAnywhere)
 	bool bForDisplayItem;
+
+	FSimpleMulticastDelegate OnStartAttack;
+	FSimpleMulticastDelegate OnEndAttack;
 
 	FSimpleMulticastDelegate OnDetected;
 	FSimpleMulticastDelegate OnUnDetected;
@@ -49,4 +50,6 @@ protected:
 	UItemWidgetComponent* ItemWidgetComponent;
 	UPROPERTY(VisibleAnywhere)
 	TArray<UBoxComponent*> BoxComponents;
+private:
+	TArray<ACharacter*> ActivatePhysicsCharacters;
 };

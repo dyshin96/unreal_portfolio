@@ -34,14 +34,37 @@ void AItem::BeginPlay()
 
 		OnDetected.AddWeakLambda(this, [this]()
 		{
-			ItemWidgetComponent->SetVisibility(true);
+			if (IsValid(ItemWidgetComponent))
+			{
+				ItemWidgetComponent->SetVisibility(true);
+			}
 		});
 
 		OnUnDetected.AddWeakLambda(this, [this]()
 		{
-			ItemWidgetComponent->SetVisibility(false);
+			if (IsValid(ItemWidgetComponent))
+			{
+				ItemWidgetComponent->SetVisibility(false);
+			}
 		});
 	}	
+
+	OnStartAttack.AddWeakLambda(this, [this]()
+	{
+		if (IsValid(StaticMeshComponent))
+		{
+			StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		}
+	});
+
+	OnEndAttack.AddWeakLambda(this, [this]()
+	{
+		if (IsValid(StaticMeshComponent))
+		{
+			StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			ActivatePhysicsCharacters.Reset();
+		}
+	});
 }
 
 void AItem::InitializeItem(EItemType InItemType, FString InItemName)
@@ -75,10 +98,15 @@ void AItem::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AWarriorsCharacter* Character = Cast<AWarriorsCharacter>(OtherActor);
-	if (GetOwner() && GetOwner() != Character && IsValid(Character))
+	if (GetOwner() && GetOwner() != Character && IsValid(Character) && !ActivatePhysicsCharacters.Contains(Character))
 	{
-		Character->OnBeginOverlap(OtherBodyIndex, StaticMeshComponent->GetForwardVector());
+		Character->OnBeginOverlap(OtherBodyIndex, StaticMeshComponent->GetForwardVector(), this);
 	}
+}
+
+void AItem::AddActivatePhysicsCharacter(ACharacter* Character)
+{
+	ActivatePhysicsCharacters.Add(Character);
 }
 
 bool AItem::IsForDisplayItem()

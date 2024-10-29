@@ -12,8 +12,7 @@ void UAttackNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequ
 		AItem* Item = Character->GetEquippedItem();
 		if (IsValid(Item))
 		{
-			UStaticMeshComponent* Mesh = Cast<UStaticMeshComponent>(Item->GetRootComponent());
-			Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			Item->OnStartAttack.Broadcast();
 		}
 	}
 }
@@ -26,8 +25,7 @@ void UAttackNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequen
 		AItem* Item = Character->GetEquippedItem();
 		if (IsValid(Item))
 		{
-			UStaticMeshComponent* Mesh = Cast<UStaticMeshComponent>(Item->GetRootComponent());
-			Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Item->OnEndAttack.Broadcast();
 		}
 	}
 }
