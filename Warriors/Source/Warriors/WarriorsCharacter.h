@@ -100,7 +100,7 @@ private:
 public:
 	AWarriorsCharacter(const FObjectInitializer& ObjectInitializer);
 private:
-	void Gaintem(AItem* Item);
+	void GainItem(AItem* Item);
 	bool IsCanGain(AItem* Item);
 	void EquipItem(int32 Index);
 	void UnEquipItem();

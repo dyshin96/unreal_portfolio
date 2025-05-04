@@ -21,6 +21,7 @@
 #include "InputActionValue.h"
 #include "IImageWrapperModule.h"
 #include "ObjectTools.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -153,7 +154,7 @@ void AWarriorsCharacter::DetectInteractionObject()
 	DetectedItems = Items;
 }
 
-void AWarriorsCharacter::Gaintem(AItem* InGainItem)
+void AWarriorsCharacter::GainItem(AItem* InGainItem)
 {
 	if (!IsCanGain(InGainItem))
 	{
@@ -669,8 +670,22 @@ void AWarriorsCharacter::OnInteraction(const FInputActionValue& Value)
 
 			if (IsValid(NearestItem))
 			{
-				Gaintem(NearestItem);
+				GainItem(NearestItem);
 			}
+		}
+		else
+		{
+#if WITH_EDITOR
+			for (TActorIterator<AItem> It(GetWorld()); It; ++It)
+			{
+				AItem* ItemActor = *It;
+				if (IsValid(ItemActor))
+				{
+					GainItem(ItemActor);
+					break;
+				}
+			}
+#endif
 		}
 	}
 }
